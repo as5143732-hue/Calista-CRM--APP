@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Client, ClientStatus, Activity } from '../types';
-import { useAuth } from './AuthContext';
+import { useAuth, User } from './AuthContext';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 interface DataContextType {
   clients: Client[];
@@ -69,210 +71,212 @@ const initialClients: Client[] = [
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [clients, setClients] = useState<Client[]>([]);
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const currentAgent = user?.name || 'System';
 
   useEffect(() => {
-    const stored = localStorage.getItem('calista_clients');
-    if (stored) {
-      // Ensure existing clients have activities array
-      const parsed = JSON.parse(stored);
-      setClients(parsed.map((c: Client) => ({ ...c, activities: c.activities || [] })));
-    } else {
-      setClients(initialClients);
-      localStorage.setItem('calista_clients', JSON.stringify(initialClients));
+    if (!firebaseUser) {
+      setClients([]);
+      return;
     }
-  }, []);
 
-  const saveClients = (newClients: Client[]) => {
-    setClients(newClients);
-    localStorage.setItem('calista_clients', JSON.stringify(newClients));
-  };
+    const q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const loaded: Client[] = [];
+      snapshot.forEach(doc => {
+        loaded.push({ id: doc.id, ...doc.data() } as Client);
+      });
+      setClients(loaded);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'clients');
+    });
 
-  const addClient = (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'notes' | 'activities'>) => {
-    const newId = crypto.randomUUID();
-    const newClient: Client = {
-      ...clientData,
-      id: newId,
-      notes: [],
-      activities: [{
-        id: crypto.randomUUID(),
-        clientId: newId,
+    return () => unsubscribe();
+  }, [firebaseUser]);
+
+  const addClient = async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'notes' | 'activities'>) => {
+    if (!firebaseUser) return;
+    try {
+      const newClientRef = doc(collection(db, 'clients'));
+      const newClient = {
+        ...clientData,
+        ownerId: firebaseUser.uid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(newClientRef, newClient);
+
+      const activityRef = doc(collection(db, `clients/${newClientRef.id}/activities`));
+      await setDoc(activityRef, {
+        clientId: newClientRef.id,
+        ownerId: firebaseUser.uid,
         type: 'client_created',
         agentName: currentAgent,
         createdAt: new Date().toISOString()
-      }],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    saveClients([...clients, newClient]);
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'clients');
+    }
   };
 
-  const updateClient = (id: string, updates: Partial<Client>) => {
-    const updated = clients.map(c => {
-      if (c.id === id) {
-        const hasStatusChange = updates.status && updates.status !== c.status;
-        const newActivities = [...(c.activities || [])];
-        
-        if (hasStatusChange) {
-          newActivities.push({
-            id: crypto.randomUUID(),
-            clientId: id,
-            type: 'status_change',
-            previousStatus: c.status,
-            newStatus: updates.status,
-            agentName: currentAgent,
-            createdAt: new Date().toISOString()
-          });
-        }
-        
-        if (updates.budget !== undefined && Number(updates.budget) !== Number(c.budget)) {
-          newActivities.push({
-            id: crypto.randomUUID(),
-            clientId: id,
-            type: 'budget_change',
-            content: `Budget changed from $${c.budget || 0} to $${updates.budget}`,
-            agentName: currentAgent,
-            createdAt: new Date().toISOString()
-          });
-        }
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    if (!firebaseUser) return;
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
 
-        if (updates.meetingDate !== undefined && updates.meetingDate !== c.meetingDate && updates.meetingDate !== null) {
-          newActivities.push({
-            id: crypto.randomUUID(),
-            clientId: id,
-            type: 'meeting_scheduled',
-            content: `Meeting scheduled for ${updates.meetingDate}`,
-            agentName: currentAgent,
-            createdAt: new Date().toISOString()
-          });
-        }
-        
-        // General update
-        newActivities.push({
-          id: crypto.randomUUID(),
+    try {
+      const clientRef = doc(db, 'clients', id);
+      const updateData = { ...updates, updatedAt: new Date().toISOString() };
+      await updateDoc(clientRef, updateData);
+
+      const hasStatusChange = updates.status && updates.status !== client.status;
+      if (hasStatusChange) {
+        const activityRef = doc(collection(db, `clients/${id}/activities`));
+        await setDoc(activityRef, {
           clientId: id,
-          type: 'client_updated',
+          ownerId: firebaseUser.uid,
+          type: 'status_change',
+          previousStatus: client.status,
+          newStatus: updates.status,
           agentName: currentAgent,
           createdAt: new Date().toISOString()
         });
-
-        return { 
-          ...c, 
-          ...updates, 
-          activities: newActivities,
-          updatedAt: new Date().toISOString() 
-        };
       }
-      return c;
-    });
-    saveClients(updated);
-  };
-
-  const updateClientStatus = (id: string, newStatus: ClientStatus) => {
-    const updated = clients.map(c => {
-      if (c.id === id && c.status !== newStatus) {
-        return {
-          ...c,
-          status: newStatus,
-          activities: [...(c.activities || []), {
-            id: crypto.randomUUID(),
-            clientId: id,
-            type: 'status_change',
-            previousStatus: c.status,
-            newStatus: newStatus,
-            agentName: currentAgent,
-            createdAt: new Date().toISOString()
-          }],
-          updatedAt: new Date().toISOString()
-        };
-      }
-      return c;
-    });
-    saveClients(updated);
-  };
-
-  const deleteClient = (id: string) => {
-    const filtered = clients.filter(c => c.id !== id);
-    saveClients(filtered);
-  };
-
-  const addNote = (clientId: string, noteText: string) => {
-    const updated = clients.map(c => {
-      if (c.id === clientId) {
-        return {
-          ...c,
-          notes: [...c.notes, { id: crypto.randomUUID(), text: noteText, createdAt: new Date().toISOString() }],
-          activities: [...(c.activities || []), {
-            id: crypto.randomUUID(),
-            clientId: id,
-            type: 'note_added',
-            content: noteText,
-            agentName: currentAgent,
-            createdAt: new Date().toISOString()
-          }],
-          updatedAt: new Date().toISOString()
-        };
-      }
-      return c;
-    });
-    saveClients(updated);
-  };
-
-  const addFollowUp = (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string }) => {
-    const updated = clients.map(c => {
-      if (c.id === clientId) {
-        const newActivities = [...(c.activities || [])];
-        
-        newActivities.push({
-          id: crypto.randomUUID(),
-          clientId,
-          type: 'follow_up',
-          content: data.feedbackText,
-          followUpType: data.followUpType,
-          nextAction: data.nextAction,
-          nextFollowUpDate: data.nextFollowUpDate,
-          previousStatus: c.status,
-          newStatus: data.status,
+      
+      if (updates.budget !== undefined && Number(updates.budget) !== Number(client.budget)) {
+        const activityRef = doc(collection(db, `clients/${id}/activities`));
+        await setDoc(activityRef, {
+          clientId: id,
+          ownerId: firebaseUser.uid,
+          type: 'budget_change',
+          content: `Budget changed from $${client.budget || 0} to $${updates.budget}`,
           agentName: currentAgent,
           createdAt: new Date().toISOString()
         });
-
-        // If status changed to something else, we might log that or just let follow_up handle it. 
-        // Follow up shows it visually, we will use newStatus and previousStatus on follow_up activity.
-
-        return {
-          ...c,
-          status: data.status,
-          followUpDate: data.nextFollowUpDate || c.followUpDate,
-          activities: newActivities,
-          updatedAt: new Date().toISOString()
-        };
       }
-      return c;
-    });
-    saveClients(updated);
+
+      if (updates.meetingDate !== undefined && updates.meetingDate !== client.meetingDate && updates.meetingDate !== null) {
+        const activityRef = doc(collection(db, `clients/${id}/activities`));
+        await setDoc(activityRef, {
+          clientId: id,
+          ownerId: firebaseUser.uid,
+          type: 'meeting_scheduled',
+          content: `Meeting scheduled for ${updates.meetingDate}`,
+          agentName: currentAgent,
+          createdAt: new Date().toISOString()
+        });
+      }
+      
+      // General update
+      const activityRef = doc(collection(db, `clients/${id}/activities`));
+      await setDoc(activityRef, {
+        clientId: id,
+        ownerId: firebaseUser.uid,
+        type: 'client_updated',
+        agentName: currentAgent,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `clients/${id}`);
+    }
   };
 
-  const logCall = (clientId: string, type: 'call_logged' | 'call_attempt') => {
-    const updated = clients.map(c => {
-      if (c.id === clientId) {
-        return {
-          ...c,
-          activities: [...(c.activities || []), {
-            id: crypto.randomUUID(),
-            clientId,
-            type,
-            content: type === 'call_logged' ? 'Call logged' : 'Call attempted',
-            agentName: currentAgent,
-            createdAt: new Date().toISOString()
-          }],
-          updatedAt: new Date().toISOString()
-        };
-      }
-      return c;
-    });
-    saveClients(updated);
+  const updateClientStatus = async (id: string, newStatus: ClientStatus) => {
+    if (!firebaseUser) return;
+    const client = clients.find(c => c.id === id);
+    if (!client || client.status === newStatus) return;
+
+    try {
+      const clientRef = doc(db, 'clients', id);
+      await updateDoc(clientRef, { status: newStatus, updatedAt: new Date().toISOString() });
+
+      const activityRef = doc(collection(db, `clients/${id}/activities`));
+      await setDoc(activityRef, {
+        clientId: id,
+        ownerId: firebaseUser.uid,
+        type: 'status_change',
+        previousStatus: client.status,
+        newStatus: newStatus,
+        agentName: currentAgent,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `clients/${id}`);
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'clients', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `clients/${id}`);
+    }
+  };
+
+  const addNote = async (clientId: string, noteText: string) => {
+    if (!firebaseUser) return;
+    try {
+      const activityRef = doc(collection(db, `clients/${clientId}/activities`));
+      await setDoc(activityRef, {
+        clientId,
+        ownerId: firebaseUser.uid,
+        type: 'note_added',
+        content: noteText,
+        agentName: currentAgent,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `clients/${clientId}/activities`);
+    }
+  };
+
+  const addFollowUp = async (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string }) => {
+    if (!firebaseUser) return;
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    try {
+      const clientRef = doc(db, 'clients', clientId);
+      await updateDoc(clientRef, { 
+        status: data.status, 
+        followUpDate: data.nextFollowUpDate || client.followUpDate,
+        updatedAt: new Date().toISOString() 
+      });
+
+      const activityRef = doc(collection(db, `clients/${clientId}/activities`));
+      await setDoc(activityRef, {
+        clientId,
+        ownerId: firebaseUser.uid,
+        type: 'follow_up',
+        content: data.feedbackText,
+        followUpType: data.followUpType,
+        nextAction: data.nextAction,
+        nextFollowUpDate: data.nextFollowUpDate,
+        previousStatus: client.status,
+        newStatus: data.status,
+        agentName: currentAgent,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `clients/${clientId}`);
+    }
+  };
+
+  const logCall = async (clientId: string, type: 'call_logged' | 'call_attempt') => {
+    if (!firebaseUser) return;
+    try {
+      const activityRef = doc(collection(db, `clients/${clientId}/activities`));
+      await setDoc(activityRef, {
+        clientId,
+        ownerId: firebaseUser.uid,
+        type,
+        content: type === 'call_logged' ? 'Call logged' : 'Call attempted',
+        agentName: currentAgent,
+        createdAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `clients/${clientId}/activities`);
+    }
   };
 
   const refreshData = () => {

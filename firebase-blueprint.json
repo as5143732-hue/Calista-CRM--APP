@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "Client": {
+      "title": "Client",
+      "description": "A CRM client",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "projectName": { "type": "string" },
+        "budget": { "type": "number" },
+        "followUpDate": { "type": "string" },
+        "meetingDate": { "type": "string" },
+        "salesAgent": { "type": "string" },
+        "status": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "phone", "ownerId", "status"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "An activity log for a client",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "type": { "type": "string" },
+        "content": { "type": "string" },
+        "previousStatus": { "type": "string" },
+        "newStatus": { "type": "string" },
+        "agentName": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "followUpType": { "type": "string" },
+        "nextAction": { "type": "string" },
+        "nextFollowUpDate": { "type": "string" }
+      },
+      "required": ["clientId", "ownerId", "type", "agentName", "createdAt"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "A note for a client",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["clientId", "ownerId", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Stores user's CRM clients"
+    },
+    "/clients/{clientId}/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Stores activities for a client"
+    },
+    "/clients/{clientId}/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/Note" },
+      "description": "Stores notes for a client"
+    }
+  }
+}

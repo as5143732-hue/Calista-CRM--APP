@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { Users, UserPlus, CheckCircle2, CalendarDays, Rocket, PhoneOutcome, Ban } from 'lucide-react';
+import { Users, UserPlus, CheckCircle2, CalendarDays, Rocket, Ban } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 

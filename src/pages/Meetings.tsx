@@ -4,6 +4,34 @@ import { format, isToday, isFuture, isPast, parseISO } from 'date-fns';
 import { Calendar, Clock, Video, Info } from 'lucide-react';
 import { StatusBadge } from '../components/ui/Badge';
 
+const MeetingCard: React.FC<{ client: any, isUpcoming: boolean }> = ({ client, isUpcoming }) => (
+  <div className={`flex items-start gap-4 p-4 rounded-xl border ${isUpcoming ? 'bg-white border-slate-200 hover:border-blue-200' : 'bg-slate-50 border-slate-200 opacity-75'} transition-colors shadow-sm`}>
+    <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold ${isUpcoming ? 'bg-blue-50 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
+      <span className="text-[10px] leading-none uppercase">{format(new Date(client.meetingDate), 'MMM')}</span>
+      <span className="text-xl leading-none mt-1">{format(new Date(client.meetingDate), 'd')}</span>
+    </div>
+    <div className="flex-1 min-w-0 pt-0.5">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className={`text-sm font-bold uppercase tracking-tight truncate ${isUpcoming ? 'text-slate-800' : 'text-slate-700'}`}>{client.projectName || 'Discovery Call'}</h3>
+          <p className="text-xs text-slate-400 truncate">{client.name}</p>
+        </div>
+        <StatusBadge status={client.status} />
+      </div>
+      <div className="mt-3 flex items-center gap-4 text-xs font-medium text-slate-500">
+        <div className="flex items-center gap-1.5">
+          <Video className="w-3.5 h-3.5" />
+          <span>Google Meet</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{isUpcoming ? 'Upcoming' : 'Completed'}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const Meetings: React.FC = () => {
   const { clients } = useData();
 
@@ -15,34 +43,6 @@ export const Meetings: React.FC = () => {
   const pastMeetings = clients
     .filter(c => c.meetingDate && isPast(parseISO(c.meetingDate)))
     .sort((a, b) => new Date(b.meetingDate!).getTime() - new Date(a.meetingDate!).getTime());
-
-  const MeetingCard = ({ client, isUpcoming }: { client: any, isUpcoming: boolean }) => (
-    <div className={`flex items-start gap-4 p-4 rounded-xl border ${isUpcoming ? 'bg-white border-slate-200 hover:border-blue-200' : 'bg-slate-50 border-slate-200 opacity-75'} transition-colors shadow-sm`}>
-      <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 font-bold ${isUpcoming ? 'bg-blue-50 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
-        <span className="text-[10px] leading-none uppercase">{format(new Date(client.meetingDate), 'MMM')}</span>
-        <span className="text-xl leading-none mt-1">{format(new Date(client.meetingDate), 'd')}</span>
-      </div>
-      <div className="flex-1 min-w-0 pt-0.5">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className={`text-sm font-bold uppercase tracking-tight truncate ${isUpcoming ? 'text-slate-800' : 'text-slate-700'}`}>{client.projectName || 'Discovery Call'}</h3>
-            <p className="text-xs text-slate-400 truncate">{client.name}</p>
-          </div>
-          <StatusBadge status={client.status} />
-        </div>
-        <div className="mt-3 flex items-center gap-4 text-xs font-medium text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <Video className="w-3.5 h-3.5" />
-            <span>Google Meet</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{isUpcoming ? 'Upcoming' : 'Completed'}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-8">

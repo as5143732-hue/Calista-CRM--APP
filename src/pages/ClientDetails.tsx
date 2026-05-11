@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { ArrowLeft, User, Phone, Mail, Building2, Banknote, Calendar, ChevronRight, Edit2, Plus, Clock, FileText, CheckCircle2, MessageCircle, CalendarPlus, Search, PhoneCall } from 'lucide-react';
@@ -6,7 +6,9 @@ import { StatusBadge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { formatCurrency } from '../lib/utils';
 import { format } from 'date-fns';
-import { ClientStatus } from '../types';
+import { ClientStatus, Activity } from '../types';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 
 const ALL_STATUSES: ClientStatus[] = [
   'My Fresh Lead', 'Follow Up', 'Meeting', 'Pending', 'Reserved', 
@@ -21,6 +23,7 @@ export const ClientDetails: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [searchActivity, setSearchActivity] = useState('');
+  const [activities, setActivities] = useState<Activity[]>([]);
   
   // Follow Up Form State
   const [fuType, setFuType] = useState('Call Attempt');
@@ -30,6 +33,23 @@ export const ClientDetails: React.FC = () => {
   const [fuNextDate, setFuNextDate] = useState('');
 
   const client = clients.find(c => c.id === id);
+
+  useEffect(() => {
+    if (!id) return;
+    
+    const activitiesRef = collection(db, `clients/${id}/activities`);
+    const unsubscribe = onSnapshot(activitiesRef, (snapshot) => {
+      const loaded: Activity[] = [];
+      snapshot.forEach(doc => {
+        loaded.push({ id: doc.id, ...doc.data() } as Activity);
+      });
+      setActivities(loaded);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `clients/${id}/activities`);
+    });
+
+    return () => unsubscribe();
+  }, [id]);
 
   if (!client) {
     return (
@@ -109,7 +129,7 @@ export const ClientDetails: React.FC = () => {
     return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
-  const filteredActivities = (client.activities || []).filter(a => {
+  const filteredActivities = activities.filter(a => {
     if (!searchActivity) return true;
     const term = searchActivity.toLowerCase();
     const matchContent = a.content?.toLowerCase().includes(term);

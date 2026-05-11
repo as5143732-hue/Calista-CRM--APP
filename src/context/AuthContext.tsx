@@ -1,42 +1,58 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
+import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import { auth, loginWithGoogle, logoutGoogle } from '../firebase';
+
+export interface User {
+  name: string;
+  role: string;
+  email: string;
+  avatar?: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => void;
-  logout: () => void;
+  firebaseUser: FirebaseUser | null;
+  loading: boolean;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('calista_user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setFirebaseUser(u);
+      if (u) {
+        setUser({
+          name: u.displayName || u.email?.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || 'User',
+          email: u.email || '',
+          role: 'Sales Representative',
+          avatar: u.photoURL || undefined
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string) => {
-    const newUser = {
-      name: email.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()),
-      email,
-      role: 'Sales Representative'
-    };
-    setUser(newUser);
-    localStorage.setItem('calista_user', JSON.stringify(newUser));
+  const login = async () => {
+    await loginWithGoogle();
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('calista_user');
+  const logout = async () => {
+    await logoutGoogle();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, firebaseUser, loading, login, logout }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
