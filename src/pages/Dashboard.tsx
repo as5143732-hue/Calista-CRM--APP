@@ -35,13 +35,13 @@ export const Dashboard: React.FC = () => {
   ];
 
   const StatCard = ({ title, value, icon: Icon, trend, trendUp, colorClass }: any) => (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{title}</p>
-        <Icon className={`w-4 h-4 ${colorClass || 'text-slate-300'}`} />
+    <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
+      <div className="flex items-center justify-between mb-1 sm:mb-2">
+        <p className="text-slate-400 text-[10px] sm:text-xs font-semibold uppercase tracking-wider truncate mr-2">{title}</p>
+        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${colorClass || 'text-slate-300'}`} />
       </div>
       <div className="flex items-baseline gap-2">
-        <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-slate-900">{value}</h3>
       </div>
     </div>
   );
@@ -55,7 +55,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatCard title="Fresh Leads" value={stats.freshLeads} icon={Rocket} colorClass="text-blue-500" />
         <StatCard title="Interested" value={stats.interested} icon={UserPlus} colorClass="text-emerald-500" />
         <StatCard title="Closed Deals" value={stats.closed} icon={CheckCircle2} colorClass="text-indigo-500" />

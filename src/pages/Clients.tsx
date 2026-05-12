@@ -78,7 +78,7 @@ export const Clients: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <h2 className="font-bold text-slate-800">All Clients</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             <div className="relative w-full sm:w-64">
@@ -107,7 +107,7 @@ export const Clients: React.FC = () => {
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100">
               <tr>
@@ -165,7 +165,7 @@ export const Clients: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <p className="text-base font-medium text-slate-700 mb-1">No clients found</p>
                     <p className="text-sm">Try adjusting your search or filters.</p>
                   </td>
@@ -173,6 +173,70 @@ export const Clients: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden flex flex-col divide-y divide-slate-100">
+          {filteredClients.length > 0 ? (
+            filteredClients.map((client) => (
+              <div 
+                key={client.id}
+                onClick={() => navigate(`/clients/${client.id}`)}
+                className="p-4 active:bg-slate-50 transition-colors flex flex-col gap-3 cursor-pointer"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-slate-900">{client.name}</h3>
+                    <p className="text-sm text-slate-500">{client.email || client.phone}</p>
+                  </div>
+                  <StatusBadge status={client.status} />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-slate-400 block text-xs">Project</span>
+                    <span className="font-medium">{client.projectName || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-xs">Budget</span>
+                    <span className="font-mono font-medium">{formatCurrency(client.budget)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-xs">Follow Up</span>
+                    <span className="text-slate-700">
+                      {client.followUpDate ? format(new Date(client.followUpDate), 'MMM d, yyyy') : '-'}
+                    </span>
+                  </div>
+                  {user?.role === 'admin' && (
+                    <div>
+                      <span className="text-slate-400 block text-xs">Owner</span>
+                      <span className="text-slate-700">{client.salesAgent || 'Unknown'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-4 pt-2 border-t border-slate-50 mt-1">
+                  <button 
+                    onClick={(e) => openEdit(e, client)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600"
+                  >
+                    <Edit2 className="w-4 h-4" /> Edit
+                  </button>
+                  <button 
+                    onClick={(e) => handleDelete(e, client.id)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-rose-600"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="px-4 py-12 text-center text-slate-500">
+              <p className="text-base font-medium text-slate-700 mb-1">No clients found</p>
+              <p className="text-sm">Try adjusting your search or filters.</p>
+            </div>
+          )}
         </div>
       </div>
 
