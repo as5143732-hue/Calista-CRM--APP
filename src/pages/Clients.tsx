@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { Plus, Search, Filter, Edit2, Trash2 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/Badge';
 import { formatCurrency } from '../lib/utils';
@@ -17,6 +18,7 @@ const ALL_STATUSES: ClientStatus[] = [
 
 export const Clients: React.FC = () => {
   const { clients, addClient, updateClient, deleteClient } = useData();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -114,6 +116,7 @@ export const Clients: React.FC = () => {
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Budget</th>
                 <th className="px-6 py-3">Next Follow Up</th>
+                {user?.role === 'admin' && <th className="px-6 py-3">Owner</th>}
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -135,6 +138,11 @@ export const Clients: React.FC = () => {
                     <td className="px-6 py-4 text-sm text-slate-500">
                       {client.followUpDate ? format(new Date(client.followUpDate), 'MMM d, yyyy') : '-'}
                     </td>
+                    {user?.role === 'admin' && (
+                      <td className="px-6 py-4 text-sm text-slate-500">
+                        {client.salesAgent || 'Unknown'}
+                      </td>
+                    )}
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 

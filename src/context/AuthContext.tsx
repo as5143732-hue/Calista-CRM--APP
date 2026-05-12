@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
-import { auth, loginWithGoogle, logoutGoogle } from '../firebase';
+import { auth, loginWithGoogle, logoutGoogle, db, handleFirestoreError, OperationType } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export interface User {
   name: string;
@@ -25,13 +26,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setFirebaseUser(u);
+      
       if (u) {
+        let currentRole = 'user';
+        
+        try {
+          const userDocRef = doc(db, 'users', u.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            currentRole = userDoc.data().role;
+          } else {
+            // New user, create document
+            const determinedRole = u.email === 'as5143732@gmail.com' ? 'admin' : 'user';
+            currentRole = determinedRole;
+            await setDoc(userDocRef, {
+              email: u.email,
+              role: determinedRole,
+              createdAt: new Date().toISOString()
+            });
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${u.uid}`);
+        }
+        
         setUser({
           name: u.displayName || u.email?.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || 'User',
           email: u.email || '',
-          role: 'Sales Representative',
+          role: currentRole,
           avatar: u.photoURL || undefined
         });
       } else {

@@ -14,6 +14,15 @@ service cloud.firestore {
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isAdmin() { return isSignedIn() && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+
+    // User Validation
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt'])
+        && data.email is string && data.email.size() <= 200
+        && data.role in ['admin', 'user']
+        && data.createdAt is string && data.createdAt.size() <= 100;
+    }
     
     // Client Validation
     function isValidClient(data) {
@@ -57,9 +66,22 @@ service cloud.firestore {
         && data.createdAt is string && data.createdAt.size() <= 100;
     }
 
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() 
+        && isValidId(userId) 
+        && request.auth.uid == userId
+        && isValidUser(incoming());
+      allow update: if isSignedIn() 
+        && isValidId(userId)
+        && (request.auth.uid == userId || isAdmin())
+        && isValidUser(incoming());
+      allow delete: if isAdmin();
+    }
+
     match /clients/{clientId} {
-      allow read: if isSignedIn() && existing().ownerId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
       
       allow create: if isSignedIn() 
         && isValidId(clientId)
@@ -68,55 +90,55 @@ service cloud.firestore {
         
       allow update: if isSignedIn() 
         && isValidId(clientId)
-        && existing().ownerId == request.auth.uid
+        && (existing().ownerId == request.auth.uid || isAdmin())
         && isValidClient(incoming())
         && incoming().ownerId == existing().ownerId
         && incoming().createdAt == existing().createdAt;
         
       allow delete: if isSignedIn() 
         && isValidId(clientId)
-        && existing().ownerId == request.auth.uid;
+        && (existing().ownerId == request.auth.uid || isAdmin());
         
       match /activities/{activityId} {
-        allow read: if isSignedIn() && existing().ownerId == request.auth.uid;
-        allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+        allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
         
         allow create: if isSignedIn()
           && isValidId(activityId)
           && isValidActivity(incoming(), clientId)
-          && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid;
+          && (get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid || isAdmin());
         
         allow update: if isSignedIn()
           && isValidId(activityId)
-          && existing().ownerId == request.auth.uid
+          && (existing().ownerId == request.auth.uid || isAdmin())
           && isValidActivity(incoming(), clientId)
           && incoming().ownerId == existing().ownerId
           && incoming().createdAt == existing().createdAt;
           
         allow delete: if isSignedIn()
           && isValidId(activityId)
-          && existing().ownerId == request.auth.uid;
+          && (existing().ownerId == request.auth.uid || isAdmin());
       }
       
       match /notes/{noteId} {
-        allow read: if isSignedIn() && existing().ownerId == request.auth.uid;
-        allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+        allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
         
         allow create: if isSignedIn()
           && isValidId(noteId)
           && isValidNote(incoming(), clientId)
-          && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid;
+          && (get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid || isAdmin());
           
         allow update: if isSignedIn()
           && isValidId(noteId)
-          && existing().ownerId == request.auth.uid
+          && (existing().ownerId == request.auth.uid || isAdmin())
           && isValidNote(incoming(), clientId)
           && incoming().ownerId == existing().ownerId
           && incoming().createdAt == existing().createdAt;
           
         allow delete: if isSignedIn()
           && isValidId(noteId)
-          && existing().ownerId == request.auth.uid;
+          && (existing().ownerId == request.auth.uid || isAdmin());
       }
     }
   }

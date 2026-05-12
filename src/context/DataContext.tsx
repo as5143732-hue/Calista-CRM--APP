@@ -80,7 +80,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));
+    let q;
+    if (user?.role === 'admin') {
+      q = query(collection(db, 'clients'));
+    } else {
+      q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));
+    }
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loaded: Client[] = [];
       snapshot.forEach(doc => {
@@ -92,7 +98,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, [firebaseUser]);
+  }, [firebaseUser, user]);
 
   const addClient = async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'notes' | 'activities'>) => {
     if (!firebaseUser) return;

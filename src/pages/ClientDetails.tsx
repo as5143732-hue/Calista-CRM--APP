@@ -21,7 +21,7 @@ export const ClientDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { clients, updateClientStatus, addNote, addFollowUp, logCall } = useData();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, user } = useAuth();
   const [newNote, setNewNote] = useState('');
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [searchActivity, setSearchActivity] = useState('');
@@ -40,7 +40,13 @@ export const ClientDetails: React.FC = () => {
     if (!id || !firebaseUser) return;
     
     const activitiesRef = collection(db, `clients/${id}/activities`);
-    const q = query(activitiesRef, where('ownerId', '==', firebaseUser.uid));
+    let q;
+    if (user?.role === 'admin') {
+      q = query(activitiesRef);
+    } else {
+      q = query(activitiesRef, where('ownerId', '==', firebaseUser.uid));
+    }
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loaded: Activity[] = [];
       snapshot.forEach(doc => {
