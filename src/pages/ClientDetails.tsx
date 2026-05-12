@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, User, Phone, Mail, Building2, Banknote, Calendar, ChevronRight, Edit2, Plus, Clock, FileText, CheckCircle2, MessageCircle, CalendarPlus, Search, PhoneCall } from 'lucide-react';
 import { StatusBadge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -8,7 +9,7 @@ import { formatCurrency } from '../lib/utils';
 import { format } from 'date-fns';
 import { ClientStatus, Activity } from '../types';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 const ALL_STATUSES: ClientStatus[] = [
   'My Fresh Lead', 'Follow Up', 'Meeting', 'Pending', 'Reserved', 
@@ -20,6 +21,7 @@ export const ClientDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { clients, updateClientStatus, addNote, addFollowUp, logCall } = useData();
+  const { firebaseUser } = useAuth();
   const [newNote, setNewNote] = useState('');
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [searchActivity, setSearchActivity] = useState('');
@@ -35,10 +37,11 @@ export const ClientDetails: React.FC = () => {
   const client = clients.find(c => c.id === id);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !firebaseUser) return;
     
     const activitiesRef = collection(db, `clients/${id}/activities`);
-    const unsubscribe = onSnapshot(activitiesRef, (snapshot) => {
+    const q = query(activitiesRef, where('ownerId', '==', firebaseUser.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const loaded: Activity[] = [];
       snapshot.forEach(doc => {
         loaded.push({ id: doc.id, ...doc.data() } as Activity);
@@ -49,7 +52,7 @@ export const ClientDetails: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [id]);
+  }, [id, firebaseUser]);
 
   if (!client) {
     return (
@@ -129,13 +132,17 @@ export const ClientDetails: React.FC = () => {
     return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 
-  const filteredActivities = activities.filter(a => {
+  const filteredActivities = (activities || []).filter(a => {
     if (!searchActivity) return true;
     const term = searchActivity.toLowerCase();
     const matchContent = a.content?.toLowerCase().includes(term);
-    const matchType = a.type.replace('_', ' ').toLowerCase().includes(term);
+    const matchType = a.type ? a.type.replace('_', ' ').toLowerCase().includes(term) : false;
     return matchContent || matchType;
-  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }).sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -295,7 +302,7 @@ export const ClientDetails: React.FC = () => {
                           </p>
                         </div>
                         <span className="text-xs font-medium text-slate-400 shrink-0 ml-4">
-                          {format(new Date(activity.createdAt), 'MMM d, h:mm a')}
+                          {activity.createdAt ? format(new Date(activity.createdAt), 'MMM d, h:mm a') : 'Just now'}
                         </span>
                       </div>
                       

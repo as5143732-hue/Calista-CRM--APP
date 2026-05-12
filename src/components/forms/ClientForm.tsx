@@ -48,13 +48,19 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      budget: Number(formData.budget) || 0,
-      followUpDate: formData.followUpDate ? new Date(formData.followUpDate).toISOString() : null,
-      meetingDate: formData.meetingDate ? new Date(formData.meetingDate).toISOString() : null,
+    const result: any = {
+      name: formData.name,
+      status: formData.status,
       salesAgent: initialData?.salesAgent || 'Current User',
-    });
+    };
+    if (formData.phone) result.phone = formData.phone;
+    if (formData.email) result.email = formData.email;
+    if (formData.projectName) result.projectName = formData.projectName;
+    if (formData.budget) result.budget = Number(formData.budget);
+    if (formData.followUpDate) result.followUpDate = new Date(formData.followUpDate).toISOString();
+    if (formData.meetingDate) result.meetingDate = new Date(formData.meetingDate).toISOString();
+
+    onSubmit(result);
   };
 
   const handleAddNote = () => {

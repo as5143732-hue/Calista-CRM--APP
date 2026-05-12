@@ -1,7 +1,7 @@
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
+  match /databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents {
     // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
@@ -17,19 +17,19 @@ service cloud.firestore {
     
     // Client Validation
     function isValidClient(data) {
-      return data.keys().hasAll(['name', 'phone', 'ownerId', 'status', 'createdAt', 'updatedAt'])
+      return data.keys().hasAll(['name', 'ownerId', 'status', 'createdAt', 'updatedAt'])
         && data.name is string && data.name.size() <= 200
-        && data.phone is string && data.phone.size() <= 100
         && data.ownerId == request.auth.uid
         && data.status is string && data.status.size() <= 100
         && data.createdAt is string && data.createdAt.size() <= 100
         && data.updatedAt is string && data.updatedAt.size() <= 100
-        && data.get('email', '') is string
-        && data.get('projectName', '') is string
-        && (data.get('budget', 0) is number || data.get('budget', 0) is string)
-        && data.get('followUpDate', '') is string
-        && data.get('meetingDate', '') is string
-        && data.get('salesAgent', '') is string;
+        && (data.get('phone', '') == null || data.get('phone', '') is string)
+        && (data.get('email', '') == null || data.get('email', '') is string)
+        && (data.get('projectName', '') == null || data.get('projectName', '') is string)
+        && (data.get('budget', 0) == null || data.get('budget', 0) is number || data.get('budget', 0) is string)
+        && (data.get('followUpDate', '') == null || data.get('followUpDate', '') is string)
+        && (data.get('meetingDate', '') == null || data.get('meetingDate', '') is string)
+        && (data.get('salesAgent', '') == null || data.get('salesAgent', '') is string);
     }
     
     // Activity Validation
@@ -40,12 +40,12 @@ service cloud.firestore {
         && data.type is string && data.type.size() <= 100
         && data.agentName is string && data.agentName.size() <= 200
         && data.createdAt is string && data.createdAt.size() <= 100
-        && data.get('content', '') is string
-        && data.get('previousStatus', '') is string
-        && data.get('newStatus', '') is string
-        && data.get('followUpType', '') is string
-        && data.get('nextAction', '') is string
-        && data.get('nextFollowUpDate', '') is string;
+        && (data.get('content', '') == null || data.get('content', '') is string)
+        && (data.get('previousStatus', '') == null || data.get('previousStatus', '') is string)
+        && (data.get('newStatus', '') == null || data.get('newStatus', '') is string)
+        && (data.get('followUpType', '') == null || data.get('followUpType', '') is string)
+        && (data.get('nextAction', '') == null || data.get('nextAction', '') is string)
+        && (data.get('nextFollowUpDate', '') == null || data.get('nextFollowUpDate', '') is string);
     }
     
     // Note Validation
@@ -84,7 +84,7 @@ service cloud.firestore {
         allow create: if isSignedIn()
           && isValidId(activityId)
           && isValidActivity(incoming(), clientId)
-          && get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid;
+          && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid;
         
         allow update: if isSignedIn()
           && isValidId(activityId)
@@ -105,7 +105,7 @@ service cloud.firestore {
         allow create: if isSignedIn()
           && isValidId(noteId)
           && isValidNote(incoming(), clientId)
-          && get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid;
+          && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid;
           
         allow update: if isSignedIn()
           && isValidId(noteId)
