@@ -19,10 +19,30 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 bg-[#0f172a] text-white h-screen flex flex-col fixed left-0 top-0">
       <div className="h-16 flex items-center px-6 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center font-bold text-white">
+          <div 
+            className="w-8 h-8 rounded-lg flex items-center justify-center border"
+            style={{
+              backgroundColor: '#1becd7',
+              borderColor: '#160c0c',
+              textAlign: 'center',
+              fontStyle: 'italic',
+              fontFamily: 'Verdana',
+              lineHeight: '25px',
+              fontSize: '19px',
+              color: '#312323'
+            }}
+          >
             <span>C</span>
           </div>
-          <span className="text-xl font-bold text-white tracking-tight">Calista CRM</span>
+          <span 
+            className="text-xl tracking-tight text-white"
+            style={{
+              fontFamily: 'Georgia',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              textAlign: 'left'
+            }}
+          >Calista CRM</span>
         </div>
       </div>
 
