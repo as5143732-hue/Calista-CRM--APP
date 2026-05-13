@@ -1,18 +1,21 @@
 export type ClientStatus = 
+  | 'New'
+  | 'In Progress'
+  | 'Interested'
+  | 'Reserved'
+  | 'Not Interested'
   | 'My Fresh Lead'
   | 'Follow Up'
   | 'Meeting'
   | 'Pending'
-  | 'Reserved'
   | 'Done Deal'
   | 'No Answer'
   | 'No Answer At All'
   | 'Follow Up After Meeting'
   | 'Canceled'
-  | 'Interested'
   | 'Low Budget'
-  | 'Not Interested'
-  | 'Unreachable';
+  | 'Unreachable'
+  | 'Call Attempt';
 
 export type ActivityType = 
   | 'status_change' 
@@ -22,7 +25,9 @@ export type ActivityType =
   | 'meeting_scheduled' 
   | 'call_logged'
   | 'call_attempt'
+  | 'whatsapp_sent'
   | 'follow_up'
+  | 'task_added'
   | 'budget_change';
 
 export interface Activity {
@@ -45,6 +50,9 @@ export interface Note {
   createdAt: string;
 }
 
+export type LeadScore = 'Cold' | 'Warm' | 'Hot';
+export type PropertyType = 'Residential' | 'Commercial' | 'Administrative' | string;
+
 export interface Client {
   id: string;
   name: string;
@@ -52,12 +60,19 @@ export interface Client {
   email: string;
   projectName: string;
   budget: number;
+  budgetMin?: number;
+  budgetMax?: number;
+  leadSource?: string;
+  leadScore?: LeadScore;
+  propertyType?: PropertyType;
+  preferredLocation?: string;
   notes: Note[];
   activities?: Activity[];
   followUpDate: string | null;
   meetingDate: string | null;
   salesAgent: string;
   status: ClientStatus;
+  ownerId?: string;
   createdAt: string;
   updatedAt: string;
 }

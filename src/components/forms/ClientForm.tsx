@@ -25,10 +25,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     phone: '',
     email: '',
     projectName: '',
-    budget: '',
+    budgetMin: '',
+    budgetMax: '',
     followUpDate: '',
     meetingDate: '',
-    status: 'My Fresh Lead' as ClientStatus,
+    status: 'New' as ClientStatus,
+    leadSource: '',
+    leadScore: 'Cold' as any,
+    propertyType: 'Residential',
+    preferredLocation: '',
   });
 
   useEffect(() => {
@@ -38,10 +43,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
         phone: initialData.phone || '',
         email: initialData.email || '',
         projectName: initialData.projectName || '',
-        budget: initialData.budget ? initialData.budget.toString() : '',
+        budgetMin: initialData.budgetMin ? initialData.budgetMin.toString() : '',
+        budgetMax: initialData.budgetMax ? initialData.budgetMax.toString() : '',
         followUpDate: initialData.followUpDate ? initialData.followUpDate.split('T')[0] : '',
         meetingDate: initialData.meetingDate ? initialData.meetingDate.split('T')[0] : '',
         status: initialData.status,
+        leadSource: initialData.leadSource || '',
+        leadScore: initialData.leadScore || 'Cold',
+        propertyType: initialData.propertyType || 'Residential',
+        preferredLocation: initialData.preferredLocation || '',
       });
     }
   }, [initialData]);
@@ -52,13 +62,21 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       name: formData.name,
       status: formData.status,
       salesAgent: initialData?.salesAgent || 'Current User',
+      leadScore: formData.leadScore,
+      propertyType: formData.propertyType,
     };
     if (formData.phone) result.phone = formData.phone;
     if (formData.email) result.email = formData.email;
     if (formData.projectName) result.projectName = formData.projectName;
-    if (formData.budget) result.budget = Number(formData.budget);
+    if (formData.budgetMin) result.budgetMin = Number(formData.budgetMin);
+    if (formData.budgetMax) result.budgetMax = Number(formData.budgetMax);
+    if (formData.leadSource) result.leadSource = formData.leadSource;
+    if (formData.preferredLocation) result.preferredLocation = formData.preferredLocation;
     if (formData.followUpDate) result.followUpDate = new Date(formData.followUpDate).toISOString();
     if (formData.meetingDate) result.meetingDate = new Date(formData.meetingDate).toISOString();
+
+    const avgBudget = ((Number(formData.budgetMin || 0) + Number(formData.budgetMax || 0)) / 2) || 0;
+    result.budget = avgBudget;
 
     onSubmit(result);
   };
@@ -86,7 +104,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
             className={`py-2 px-4 text-sm font-bold uppercase tracking-tight border-b-2 transition-colors ${activeTab === 'notes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-800'}`}
             onClick={() => setActiveTab('notes')}
           >
-            Notes ({initialData.notes.length})
+            Notes ({initialData?.notes?.length || 0})
           </button>
         </div>
       )}
@@ -117,8 +135,36 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
               <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.projectName} onChange={e => setFormData({...formData, projectName: e.target.value})} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Budget ($)</label>
-              <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budget} onChange={e => setFormData({...formData, budget: e.target.value})} />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Lead Source</label>
+              <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.leadSource} onChange={e => setFormData({...formData, leadSource: e.target.value})} placeholder="e.g. Facebook Ads" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Lead Score</label>
+              <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.leadScore} onChange={e => setFormData({...formData, leadScore: e.target.value})}>
+                <option value="Cold">Cold</option>
+                <option value="Warm">Warm</option>
+                <option value="Hot">Hot</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Property Type</label>
+              <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.propertyType} onChange={e => setFormData({...formData, propertyType: e.target.value})}>
+                <option value="Residential">Residential</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Administrative">Administrative</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Preferred Location</label>
+              <input type="text" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.preferredLocation} onChange={e => setFormData({...formData, preferredLocation: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Budget Min ($)</label>
+              <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budgetMin} onChange={e => setFormData({...formData, budgetMin: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Budget Max ($)</label>
+              <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budgetMax} onChange={e => setFormData({...formData, budgetMax: e.target.value})} />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Follow Up Date</label>
@@ -142,7 +188,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       ) : (
         <div className="flex-1 flex flex-col h-[400px]">
           <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-4">
-            {initialData?.notes.length === 0 ? (
+            {!initialData?.notes?.length ? (
               <p className="text-sm text-slate-500 text-center py-6 border border-dashed rounded-lg">No notes added yet.</p>
             ) : (
               initialData?.notes.map(note => (

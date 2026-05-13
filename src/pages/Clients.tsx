@@ -1,37 +1,207 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, Filter, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Phone, MessageCircle, Calendar as CalendarIcon, Bell, CalendarPlus, User, Building2, Globe, Clock, PhoneCall } from 'lucide-react';
 import { StatusBadge } from '../components/ui/Badge';
 import { formatCurrency } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
 import { ClientForm } from '../components/forms/ClientForm';
-import { Client, ClientStatus } from '../types';
-import { format } from 'date-fns';
+import { Client, ClientStatus, Activity } from '../types';
+import { format, formatDistanceToNow } from 'date-fns';
+import { db } from '../firebase';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 const ALL_STATUSES: ClientStatus[] = [
-  'My Fresh Lead', 'Follow Up', 'Meeting', 'Pending', 'Reserved', 
+  'New', 'In Progress', 'Interested', 'Reserved', 'Not Interested',
+  'My Fresh Lead', 'Follow Up', 'Meeting', 'Pending', 
   'Done Deal', 'No Answer', 'No Answer At All', 'Follow Up After Meeting', 
-  'Canceled', 'Interested', 'Low Budget', 'Not Interested', 'Unreachable'
+  'Canceled', 'Low Budget', 'Unreachable', 'Call Attempt'
 ];
 
-export const Clients: React.FC = () => {
-  const { clients, addClient, updateClient, deleteClient } = useData();
-  const { user } = useAuth();
+const FILTER_STATUSES: string[] = [
+  'Interested', 'Reserved', 'Not Interested',
+  'Fresh Lead', 'Follow Up', 'Meeting', 'Pending', 
+  'Done Deal', 'No Answer', 'No Answer At All', 'Follow Up After Meeting', 
+  'Canceled', 'Low Budget', 'Unreachable'
+];
+
+const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any }> = ({ client, logQuickAction, user }) => {
   const navigate = useNavigate();
+  const [lastActivity, setLastActivity] = useState<Activity | null>(null);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, `clients/${client.id}/activities`), 
+      orderBy('createdAt', 'desc'), 
+      limit(1)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+         setLastActivity({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Activity);
+      } else {
+         setLastActivity(null);
+      }
+    }, (error) => {
+       console.error("Failed to fetch last activity", error);
+    });
+
+    return () => unsubscribe();
+  }, [client.id]);
+
+  const handleWhatsApp = (e: React.MouseEvent, phone: string, clientId: string) => {
+    e.stopPropagation();
+    logQuickAction(clientId, 'whatsapp_sent');
+    window.open(`https://wa.me/2${phone.replace(/[^0-9]/g, '')}`, '_blank');
+  };
+
+  const handleSetReminder = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notification');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      scheduleNotification();
+    } else if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        scheduleNotification();
+      }
+    }
+  };
+
+  const scheduleNotification = () => {
+    // For demo purposes: Set a fake reminder for 1 minute from now
+    alert('تم تعيين مؤقت تذكير لهذا العميل بعد دقيقة واحدة (للتجربة).');
+    setTimeout(() => {
+      new Notification(`تذكير بمتابعة العميل: ${client.name}`, {
+        body: `يرجى متابعة العميل ${client.name} الآن.`,
+        icon: '/favicon.ico'
+      });
+    }, 60000);
+  };
+
+  const formatActivityName = (type: string) => {
+    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  return (
+    <div 
+      onClick={() => navigate(`/clients/${client.id}`)}
+      className="bg-[#244648] rounded-[24px] p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-[473px] h-[250px] overflow-hidden"
+    >
+        <div className="grid grid-cols-[1fr_1.5fr] gap-4 h-full">
+            
+            {/* Left Column */}
+            <div className="flex flex-col justify-between h-full w-[170px]">
+                {/* Name */}
+                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2">
+                    <div className="bg-[#6db5a4] rounded-full p-1.5 shrink-0 flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-bold text-slate-800 text-xs truncate max-w-[110px]" title={client.name}>{client.name}</span>
+                </div>
+
+                {/* Phone */}
+                <div className="flex items-center gap-2">
+                    <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 flex-1 min-w-0">
+                        <PhoneCall className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span className="font-bold text-slate-800 text-xs truncate max-w-[85px]">{client.phone}</span>
+                    </div>
+                    <button 
+                        onClick={(e) => handleWhatsApp(e, client.phone, client.id)}
+                        className="text-[#4bcd62] hover:text-green-400 transition-colors shrink-0 outline-none"
+                        style={{ background: 'transparent' }}
+                    >
+                        <MessageCircle className="w-8 h-8" strokeWidth={1.5} />
+                    </button>
+                </div>
+
+                {/* Project */}
+                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 mb-2">
+                    <Building2 className="w-4 h-4 text-amber-900 shrink-0" />
+                    <span className="font-bold text-slate-800 text-xs truncate max-w-[130px]">{client.projectName || 'No Project'}</span>
+                </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="flex flex-col justify-between h-full pl-2">
+                {/* Top Row: Status & User */}
+                <div className="flex items-center justify-between gap-2">
+                    <div className="bg-white rounded-full px-4 py-1.5 font-bold text-slate-800 text-xs text-center flex-1 truncate">
+                        {client.status}
+                    </div>
+                    {user?.role === 'admin' ? (
+                        <div className="bg-white rounded-full px-4 py-1.5 font-bold text-slate-800 text-xs text-center flex-1 truncate" title={client.salesAgent}>
+                            {client.salesAgent?.split(' ')[0] || 'Unknown'}
+                        </div>
+                    ) : (
+                         <div className="bg-white rounded-full px-4 py-1.5 font-bold text-slate-800 text-xs text-center flex-1 truncate" title={user?.name}>
+                            {user?.name?.split(' ')[0] || 'Unknown'}
+                        </div>
+                    )}
+                </div>
+
+                {/* Middle Box: Last Action */}
+                <div className="bg-white rounded-xl p-4 flex flex-col items-center justify-center min-h-[90px] w-full text-center my-2 shadow-sm">
+                    <span className="font-bold text-slate-800 text-sm mb-1">
+                        {lastActivity ? formatActivityName(lastActivity.type) : 'No Actions Yet'}
+                    </span>
+                    {lastActivity?.content && (
+                        <span className="text-xs font-medium text-slate-500 line-clamp-2 leading-tight">
+                            {lastActivity.content}
+                        </span>
+                    )}
+                </div>
+
+                {/* Bottom Row: Sources & Last Date */}
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 flex-1 overflow-hidden">
+                        <Globe className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span className="font-bold text-slate-800 text-xs truncate max-w-[65px]" title={client.leadSource || 'Direct'}>{client.leadSource || 'Direct'}</span>
+                    </div>
+                    <div className="bg-white rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 flex-1 w-[125px]">
+                        <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="font-bold text-slate-800 text-[10px] truncate">
+                           {lastActivity ? formatDistanceToNow(new Date(lastActivity.createdAt), { addSuffix: true }) : '---'}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+  );
+};
+
+export const Clients: React.FC = () => {
+  const { clients, addClient, updateClient, logQuickAction } = useData();
+  const { user } = useAuth();
+  
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>(undefined);
-  
+
+  // Extract unique projects for the filter dropdown
+  const uniqueProjects = Array.from(new Set(clients.map(c => c.projectName).filter(Boolean)));
+
   const filteredClients = clients.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (c.projectName || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+                          (c.projectName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (c.phone || '').includes(searchTerm);
+    
+    // Handle 'Fresh Lead' map to 'My Fresh Lead'
+    const matchTargetStatus = statusFilter === 'Fresh Lead' ? 'My Fresh Lead' : statusFilter;
+    const matchesStatus = statusFilter ? c.status === matchTargetStatus : true;
+    const matchesProject = projectFilter ? c.projectName === projectFilter : true;
+
+    return matchesSearch && matchesStatus && matchesProject;
+  }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   const handleAddOrEdit = (data: any) => {
     if (editingClient) {
@@ -43,198 +213,89 @@ export const Clients: React.FC = () => {
     setEditingClient(undefined);
   };
 
-  const openEdit = (e: React.MouseEvent, client: Client) => {
-    e.stopPropagation();
-    setEditingClient(client);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if(confirm('Are you sure you want to delete this client?')) {
-      deleteClient(id);
-    }
-  };
-
   const openAdd = () => {
     setEditingClient(undefined);
     setIsModalOpen(true);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Clients</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage your leads and clients here.</p>
+    <div className="h-full flex flex-col gap-6">
+      {/* Top Header & Filters */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Clients</h1>
+            <p className="text-slate-500 text-sm mt-1">Manage all your contacts list.</p>
+          </div>
+          
+          <button 
+            onClick={openAdd}
+            className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus className="w-5 h-5" /> Add Client
+          </button>
         </div>
-        <button 
-          onClick={openAdd}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Client
-        </button>
+
+        {/* Filters Row */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-4 overflow-x-auto">
+           <div className="flex items-center gap-2 font-bold text-slate-800 shrink-0">
+             <Filter className="w-5 h-5 text-blue-500" /> Filters:
+           </div>
+           
+           <div className="relative w-full sm:w-64 shrink-0">
+             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+             <input 
+               type="text" 
+               placeholder="Search clients..." 
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-shadow"
+             />
+           </div>
+
+           <div className="w-full sm:w-48 shrink-0">
+             <select 
+               value={statusFilter}
+               onChange={(e) => setStatusFilter(e.target.value)}
+               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium text-slate-800"
+             >
+               <option value="">All Statuses</option>
+               {FILTER_STATUSES.map(status => (
+                 <option key={status} value={status}>{status}</option>
+               ))}
+             </select>
+           </div>
+
+           <div className="w-full sm:w-48 shrink-0">
+             <select 
+               value={projectFilter}
+               onChange={(e) => setProjectFilter(e.target.value)}
+               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium text-slate-800"
+             >
+               <option value="">All Projects</option>
+               {uniqueProjects.map(proj => (
+                 <option key={proj} value={proj || ''}>{proj}</option>
+               ))}
+             </select>
+           </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <h2 className="font-bold text-slate-800">All Clients</h2>
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-shadow appearance-none font-medium text-slate-700"
-              >
-                <option value="All">All Statuses</option>
-                {ALL_STATUSES.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text" 
-                placeholder="Search clients..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-shadow"
-              />
-            </div>
-          </div>
+      {/* Main Content: Vertical Client List */}
+      <div className="flex-1 bg-slate-50/50 rounded-3xl border border-slate-200 p-6 overflow-y-auto">
+        <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
+           <h2 className="font-bold text-slate-800">
+             Showing {filteredClients.length} {filteredClients.length === 1 ? 'Client' : 'Clients'}
+           </h2>
         </div>
         
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-3">Client</th>
-                <th className="px-6 py-3">Project</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Budget</th>
-                <th className="px-6 py-3">Next Follow Up</th>
-                {user?.role === 'admin' && <th className="px-6 py-3">Owner</th>}
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 text-slate-700">
-              {filteredClients.length > 0 ? (
-                filteredClients.map((client) => (
-                  <tr 
-                    key={client.id} 
-                    onClick={() => navigate(`/clients/${client.id}`)}
-                    className="hover:bg-slate-50 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{client.name}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{client.email || client.phone}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">{client.projectName || '-'}</td>
-                    <td className="px-6 py-4"><StatusBadge status={client.status} /></td>
-                    <td className="px-6 py-4 font-mono text-sm font-medium">{formatCurrency(client.budget)}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {client.followUpDate ? format(new Date(client.followUpDate), 'MMM d, yyyy') : '-'}
-                    </td>
-                    {user?.role === 'admin' && (
-                      <td className="px-6 py-4 text-sm text-slate-500">
-                        {client.salesAgent || 'Unknown'}
-                      </td>
-                    )}
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={(e) => openEdit(e, client)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-white border text-transparent border-transparent hover:border-slate-200 hover:shadow-sm rounded-md transition-all"
-                          title="Edit"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => handleDelete(e, client.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white border text-transparent border-transparent hover:border-slate-200 hover:shadow-sm rounded-md transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                    <p className="text-base font-medium text-slate-700 mb-1">No clients found</p>
-                    <p className="text-sm">Try adjusting your search or filters.</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile View */}
-        <div className="md:hidden flex flex-col divide-y divide-slate-100">
-          {filteredClients.length > 0 ? (
-            filteredClients.map((client) => (
-              <div 
-                key={client.id}
-                onClick={() => navigate(`/clients/${client.id}`)}
-                className="p-4 active:bg-slate-50 transition-colors flex flex-col gap-3 cursor-pointer"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-slate-900">{client.name}</h3>
-                    <p className="text-sm text-slate-500">{client.email || client.phone}</p>
-                  </div>
-                  <StatusBadge status={client.status} />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-slate-400 block text-xs">Project</span>
-                    <span className="font-medium">{client.projectName || '-'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-xs">Budget</span>
-                    <span className="font-mono font-medium">{formatCurrency(client.budget)}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block text-xs">Follow Up</span>
-                    <span className="text-slate-700">
-                      {client.followUpDate ? format(new Date(client.followUpDate), 'MMM d, yyyy') : '-'}
-                    </span>
-                  </div>
-                  {user?.role === 'admin' && (
-                    <div>
-                      <span className="text-slate-400 block text-xs">Owner</span>
-                      <span className="text-slate-700">{client.salesAgent || 'Unknown'}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-4 pt-2 border-t border-slate-50 mt-1">
-                  <button 
-                    onClick={(e) => openEdit(e, client)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-blue-600"
-                  >
-                    <Edit2 className="w-4 h-4" /> Edit
-                  </button>
-                  <button 
-                    onClick={(e) => handleDelete(e, client.id)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-rose-600"
-                  >
-                    <Trash2 className="w-4 h-4" /> Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="px-4 py-12 text-center text-slate-500">
-              <p className="text-base font-medium text-slate-700 mb-1">No clients found</p>
-              <p className="text-sm">Try adjusting your search or filters.</p>
+        <div className="flex flex-wrap gap-4 max-w-[1200px] mx-auto pb-10 justify-center md:justify-start">
+          {filteredClients.map((client) => (
+             <ClientCard key={client.id} client={client} logQuickAction={logQuickAction} user={user} />
+          ))}
+          {filteredClients.length === 0 && (
+            <div className="py-20 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
+               There are no clients matching your filters.
             </div>
           )}
         </div>
@@ -254,4 +315,3 @@ export const Clients: React.FC = () => {
     </div>
   );
 };
-

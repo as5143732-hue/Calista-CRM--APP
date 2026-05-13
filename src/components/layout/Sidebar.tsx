@@ -17,12 +17,12 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className="w-64 bg-[#0f172a] text-white h-screen flex flex-col fixed left-0 top-0">
-      <div className="h-16 flex items-center px-6 border-b border-slate-800">
+      <div className="h-16 flex items-center px-6 border-b border-slate-800" style={{ backgroundColor: '#111229' }}>
         <div className="flex items-center gap-3">
           <div 
             className="w-8 h-8 rounded-lg flex items-center justify-center border"
             style={{
-              backgroundColor: '#1becd7',
+              backgroundColor: '#00C3D0',
               borderColor: '#160c0c',
               textAlign: 'center',
               fontStyle: 'italic',
@@ -32,7 +32,7 @@ export const Sidebar: React.FC = () => {
               color: '#312323'
             }}
           >
-            <span>C</span>
+            <span style={{ color: '#100f0f', fontWeight: 'bold' }}>C</span>
           </div>
           <span 
             className="text-xl tracking-tight text-white"
@@ -46,11 +46,11 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-2">
+      <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1" style={{ backgroundColor: '#00b1bd' }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-4 px-2" style={{ color: '#f0f2f5', fontSize: '15px' }}>
           Menu
         </div>
-        {navItems.map((item) => (
+        {navItems.map((item, index) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -58,8 +58,15 @@ export const Sidebar: React.FC = () => {
               "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
               isActive 
                 ? "bg-blue-600/20 text-blue-400" 
-                : "text-slate-400 hover:text-white"
+                : "hover:bg-slate-800"
             )}
+            style={{
+              color: index === 0 ? '#f2f2f2' : index === 1 ? '#f0f4f8' : index === 2 ? '#f1eeee' : index === 3 ? '#f0ebeb' : index === 4 ? '#f0f2f5' : undefined,
+              fontWeight: index === 0 ? 'bold' : undefined,
+              borderColor: '#000000',
+              borderWidth: '0.740741px',
+              backgroundColor: index === 0 ? '#00C3D0' : undefined
+            }}
           >
             <item.icon className="w-5 h-5" />
             {item.label}
@@ -67,10 +74,11 @@ export const Sidebar: React.FC = () => {
         ))}
       </div>
 
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800" style={{}}>
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+          style={{ color: '#eff4f4' }}
         >
           <LogOut className="w-5 h-5" />
           Sign Out

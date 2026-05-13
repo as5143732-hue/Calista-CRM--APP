@@ -12,7 +12,7 @@ interface DataContextType {
   addNote: (clientId: string, noteText: string) => void;
   updateClientStatus: (id: string, newStatus: ClientStatus) => void;
   addFollowUp: (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string }) => void;
-  logCall: (clientId: string, type: 'call_logged' | 'call_attempt') => void;
+  logQuickAction: (clientId: string, type: 'call_logged' | 'call_attempt' | 'whatsapp_sent', content?: string) => void;
   refreshData: () => void;
 }
 
@@ -110,6 +110,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      // Optimistic update
+      setClients(prev => [{ id: newClientRef.id, ...newClient } as Client, ...prev]);
+
       await setDoc(newClientRef, newClient);
 
       const activityRef = doc(collection(db, `clients/${newClientRef.id}/activities`));
@@ -129,6 +132,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!firebaseUser) return;
     const client = clients.find(c => c.id === id);
     if (!client) return;
+
+    // Optimistic update
+    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
 
     try {
       const clientRef = doc(db, 'clients', id);
@@ -192,6 +198,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const client = clients.find(c => c.id === id);
     if (!client || client.status === newStatus) return;
 
+    // Optimistic update
+    setClients(prev => prev.map(c => c.id === id ? { ...c, status: newStatus, updatedAt: new Date().toISOString() } : c));
+
     try {
       const clientRef = doc(db, 'clients', id);
       await updateDoc(clientRef, { status: newStatus, updatedAt: new Date().toISOString() });
@@ -212,6 +221,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteClient = async (id: string) => {
+    // Optimistic update
+    setClients(prev => prev.filter(c => c.id !== id));
     try {
       await deleteDoc(doc(db, 'clients', id));
     } catch (error) {
@@ -241,6 +252,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
 
+    // Optimistic update
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, status: data.status, followUpDate: data.nextFollowUpDate || client.followUpDate, updatedAt: new Date().toISOString() } : c));
+
     try {
       const clientRef = doc(db, 'clients', clientId);
       await updateDoc(clientRef, { 
@@ -268,15 +282,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logCall = async (clientId: string, type: 'call_logged' | 'call_attempt') => {
+  const logQuickAction = async (clientId: string, type: 'call_logged' | 'call_attempt' | 'whatsapp_sent', content?: string) => {
     if (!firebaseUser) return;
     try {
       const activityRef = doc(collection(db, `clients/${clientId}/activities`));
+      
+      let defaultContent = '';
+      if (type === 'call_logged') defaultContent = 'Call logged';
+      if (type === 'call_attempt') defaultContent = 'Call attempted';
+      if (type === 'whatsapp_sent') defaultContent = 'WhatsApp message sent';
+
       await setDoc(activityRef, {
         clientId,
         ownerId: firebaseUser.uid,
         type,
-        content: type === 'call_logged' ? 'Call logged' : 'Call attempted',
+        content: content || defaultContent,
         agentName: currentAgent,
         createdAt: new Date().toISOString()
       });
@@ -285,12 +305,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const logCall = (clientId: string, type: 'call_logged' | 'call_attempt') => {
+      logQuickAction(clientId, type);
+  };
+
   const refreshData = () => {
     // just dummy for trigger updates if needed
   };
 
   return (
-    <DataContext.Provider value={{ clients, addClient, updateClient, deleteClient, addNote, updateClientStatus, addFollowUp, logCall, refreshData }}>
+    <DataContext.Provider value={{ clients, addClient, updateClient, deleteClient, addNote, updateClientStatus, addFollowUp, logCall, logQuickAction, refreshData }}>
       {children}
     </DataContext.Provider>
   );
