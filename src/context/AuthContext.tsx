@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User as FirebaseUser, onAuthStateChanged, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, loginWithGoogle, logoutGoogle, db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -123,7 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async () => {
-    await setPersistence(auth, browserLocalPersistence);
     await loginWithGoogle();
   };
 
