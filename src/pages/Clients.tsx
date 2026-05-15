@@ -90,62 +90,62 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any }> =
   return (
     <div 
       onClick={() => navigate(`/clients/${client.id}`)}
-      className="bg-[#244648] rounded-[24px] p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-[473px] h-[250px] overflow-hidden"
+      className="bg-[#244648] rounded-[24px] p-4 sm:p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-full flex flex-col sm:h-[250px] overflow-hidden"
     >
-        <div className="grid grid-cols-[1fr_1.5fr] gap-4 h-full">
+        <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[170px_1fr] gap-3 sm:gap-4 h-full">
             
             {/* Left Column */}
-            <div className="flex flex-col justify-between h-full w-[170px]">
+            <div className="flex flex-col justify-between h-full sm:w-[170px] w-full">
                 {/* Name */}
-                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2">
+                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 mb-2 sm:mb-0">
                     <div className="bg-[#6db5a4] rounded-full p-1.5 shrink-0 flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                     </div>
-                    <span className="font-bold text-slate-800 text-xs truncate max-w-[110px]" title={client.name}>{client.name}</span>
+                    <span className="font-bold text-slate-800 text-xs truncate" title={client.name}>{client.name}</span>
                 </div>
 
                 {/* Phone */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2 sm:mb-0">
                     <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 flex-1 min-w-0">
-                        <PhoneCall className="w-4 h-4 text-slate-500 shrink-0" />
-                        <span className="font-bold text-slate-800 text-xs truncate max-w-[85px]">{client.phone}</span>
+                        <PhoneCall className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="font-bold text-slate-800 text-xs truncate">{client.phone}</span>
                     </div>
                     <button 
                         onClick={(e) => handleWhatsApp(e, client.phone, client.id)}
-                        className="text-[#4bcd62] hover:text-green-400 transition-colors shrink-0 outline-none"
+                        className="text-[#4bcd62] hover:text-green-400 transition-colors shrink-0 outline-none p-1"
                         style={{ background: 'transparent' }}
                     >
-                        <MessageCircle className="w-8 h-8" strokeWidth={1.5} />
+                        <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
                     </button>
                 </div>
 
                 {/* Project */}
-                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 mb-2">
+                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 sm:mb-2 mt-auto">
                     <Building2 className="w-4 h-4 text-amber-900 shrink-0" />
-                    <span className="font-bold text-slate-800 text-xs truncate max-w-[130px]">{client.projectName || 'No Project'}</span>
+                    <span className="font-bold text-slate-800 text-xs truncate">{client.projectName || 'No Project'}</span>
                 </div>
             </div>
 
             {/* Right Column */}
-            <div className="flex flex-col justify-between h-full pl-2">
+            <div className="flex flex-col justify-between h-full sm:pl-2 min-w-0">
                 {/* Top Row: Status & User */}
-                <div className="flex items-center justify-between gap-2">
-                    <div className="bg-white rounded-full px-4 py-1.5 font-bold text-slate-800 text-xs text-center flex-1 truncate">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate">
                         {client.status}
                     </div>
                     {user?.role === 'admin' ? (
-                        <div className="bg-white rounded-full px-4 py-1.5 font-bold text-slate-800 text-xs text-center flex-1 truncate" title={client.salesAgent}>
+                        <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate" title={client.salesAgent}>
                             {client.salesAgent?.split(' ')[0] || 'Unknown'}
                         </div>
                     ) : (
-                         <div className="bg-white rounded-full px-4 py-1.5 font-bold text-slate-800 text-xs text-center flex-1 truncate" title={user?.name}>
+                         <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate" title={user?.name}>
                             {user?.name?.split(' ')[0] || 'Unknown'}
                         </div>
                     )}
                 </div>
 
                 {/* Middle Box: Last Action */}
-                <div className="bg-white rounded-xl p-4 flex flex-col items-center justify-center min-h-[90px] w-full text-center my-2 shadow-sm">
+                <div className="bg-white rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center min-h-[70px] sm:min-h-[90px] w-full text-center my-2 shadow-sm flex-1">
                     <span className="font-bold text-slate-800 text-sm mb-1">
                         {lastActivity ? formatActivityName(lastActivity.type) : 'No Actions Yet'}
                     </span>
@@ -157,12 +157,12 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any }> =
                 </div>
 
                 {/* Bottom Row: Sources & Last Date */}
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 flex-1 overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-center gap-2 sm:mb-2">
+                    <div className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 w-full sm:flex-1 overflow-hidden">
                         <Globe className="w-4 h-4 text-slate-500 shrink-0" />
-                        <span className="font-bold text-slate-800 text-xs truncate max-w-[65px]" title={client.leadSource || 'Direct'}>{client.leadSource || 'Direct'}</span>
+                        <span className="font-bold text-slate-800 text-xs truncate" title={client.leadSource || 'Direct'}>{client.leadSource || 'Direct'}</span>
                     </div>
-                    <div className="bg-white rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 flex-1 w-[125px]">
+                    <div className="bg-white rounded-xl px-2 sm:px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-[125px]">
                         <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span className="font-bold text-slate-800 text-[10px] truncate">
                            {lastActivity ? formatDistanceToNow(new Date(lastActivity.createdAt), { addSuffix: true }) : '---'}
@@ -237,12 +237,12 @@ export const Clients: React.FC = () => {
         </div>
 
         {/* Filters Row */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center gap-4 overflow-x-auto">
-           <div className="flex items-center gap-2 font-bold text-slate-800 shrink-0">
-             <Filter className="w-5 h-5 text-blue-500" /> Filters:
+        <div className="bg-[#bcc1ca] border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-row items-center gap-3 sm:gap-4 overflow-x-auto snap-x">
+           <div className="flex items-center gap-2 font-bold text-slate-800 shrink-0 snap-start">
+             <Filter className="w-5 h-5 text-blue-500" /> <span className="hidden sm:inline">Filters:</span>
            </div>
            
-           <div className="relative w-full sm:w-64 shrink-0">
+           <div className="relative w-48 sm:w-64 shrink-0 snap-start">
              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
              <input 
                type="text" 
@@ -253,7 +253,7 @@ export const Clients: React.FC = () => {
              />
            </div>
 
-           <div className="w-full sm:w-48 shrink-0">
+           <div className="w-40 sm:w-48 shrink-0 snap-start">
              <select 
                value={statusFilter}
                onChange={(e) => setStatusFilter(e.target.value)}
@@ -266,7 +266,7 @@ export const Clients: React.FC = () => {
              </select>
            </div>
 
-           <div className="w-full sm:w-48 shrink-0">
+           <div className="w-40 sm:w-48 shrink-0 snap-start">
              <select 
                value={projectFilter}
                onChange={(e) => setProjectFilter(e.target.value)}
@@ -282,19 +282,19 @@ export const Clients: React.FC = () => {
       </div>
 
       {/* Main Content: Vertical Client List */}
-      <div className="flex-1 bg-slate-50/50 rounded-3xl border border-slate-200 p-6 overflow-y-auto">
+      <div className="flex-1 bg-[#bcc1ca] rounded-3xl border border-slate-200 p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
            <h2 className="font-bold text-slate-800">
              Showing {filteredClients.length} {filteredClients.length === 1 ? 'Client' : 'Clients'}
            </h2>
         </div>
         
-        <div className="flex flex-wrap gap-4 max-w-[1200px] mx-auto pb-10 justify-center md:justify-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 xl:gap-6 max-w-[1600px] mx-auto pb-10">
           {filteredClients.map((client) => (
              <ClientCard key={client.id} client={client} logQuickAction={logQuickAction} user={user} />
           ))}
           {filteredClients.length === 0 && (
-            <div className="py-20 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-white">
+            <div className="py-20 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-white col-span-full">
                There are no clients matching your filters.
             </div>
           )}

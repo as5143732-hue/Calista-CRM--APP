@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 import { auth, loginWithGoogle, logoutGoogle, db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -10,12 +10,21 @@ export interface User {
   avatar?: string;
 }
 
+export interface AppUser {
+  email: string;
+  password?: string;
+  isActive: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
+  appUser: AppUser | null;
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  isAppPasswordVerified: boolean;
+  verifyAppPassword: (password: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +32,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAppPasswordVerified, setIsAppPasswordVerified] = useState(false);
+  const [isIdle, setIsIdle] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      setIsIdle(false);
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsIdle(true);
+        signOut(auth);
+      }, 259200000); // 3 days in milliseconds
+    };
+
+    resetTimer();
+
+    const events = ['mousemove', 'keydown', 'click'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -33,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let currentRole = 'user';
         
         try {
+          // Handle 'users' collection
           const userDocRef = doc(db, 'users', u.uid);
           const userDoc = await getDoc(userDocRef);
           
@@ -48,8 +84,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: new Date().toISOString()
             });
           }
+
+          // Handle 'appUsers' collection
+          const appUserDocRef = doc(db, 'appUsers', u.uid);
+          const appUserDoc = await getDoc(appUserDocRef);
+
+          if (appUserDoc.exists()) {
+            setAppUser(appUserDoc.data() as AppUser);
+          } else {
+            const newAppUser: AppUser = {
+              email: u.email || '',
+              password: '',
+              isActive: false
+            };
+            await setDoc(appUserDocRef, newAppUser);
+            setAppUser(newAppUser);
+          }
+
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${u.uid}`);
+          handleFirestoreError(error, OperationType.GET, `users_or_appUsers_fetch`);
         }
         
         setUser({
@@ -60,22 +113,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } else {
         setUser(null);
+        setAppUser(null);
+        setIsAppPasswordVerified(false);
       }
       setLoading(false);
     });
+    
     return () => unsubscribe();
   }, []);
 
   const login = async () => {
+    await setPersistence(auth, browserLocalPersistence);
     await loginWithGoogle();
   };
 
   const logout = async () => {
     await logoutGoogle();
+    setIsAppPasswordVerified(false);
+  };
+
+  const verifyAppPassword = (password: string) => {
+    if (appUser && appUser.password === password) {
+      setIsAppPasswordVerified(true);
+      return true;
+    }
+    return false;
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, appUser, loading, login, logout, isAppPasswordVerified, verifyAppPassword }}>
       {!loading && children}
     </AuthContext.Provider>
   );
@@ -86,3 +152,4 @@ export const useAuth = () => {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
+

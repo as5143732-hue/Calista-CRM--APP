@@ -23,6 +23,14 @@ service cloud.firestore {
         && data.role in ['admin', 'user']
         && data.createdAt is string && data.createdAt.size() <= 100;
     }
+
+    // AppUser Validation
+    function isValidAppUser(data) {
+      return data.keys().hasAll(['email', 'isActive'])
+        && data.email is string && data.email.size() <= 200
+        && data.isActive is bool
+        && (data.get('password', '') == null || data.get('password', '') is string);
+    }
     
     // Client Validation
     function isValidClient(data) {
@@ -76,6 +84,21 @@ service cloud.firestore {
         && isValidId(userId)
         && (request.auth.uid == userId || isAdmin())
         && isValidUser(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /appUsers/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() 
+        && isValidId(userId) 
+        && request.auth.uid == userId
+        && isValidAppUser(incoming());
+      allow update: if isAdmin() || (
+        isSignedIn() && 
+        request.auth.uid == userId && 
+        incoming().diff(existing()).affectedKeys().hasOnly(['password'])
+      );
       allow delete: if isAdmin();
     }
 

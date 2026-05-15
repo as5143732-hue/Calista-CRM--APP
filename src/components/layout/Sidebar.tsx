@@ -1,10 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { logout } = useAuth();
   
   const navItems = [
@@ -16,11 +16,11 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-[#0f172a] text-white h-screen flex flex-col fixed left-0 top-0">
-      <div className="h-16 flex items-center px-6 border-b border-slate-800" style={{ backgroundColor: '#111229' }}>
+    <aside className="w-64 bg-[#0f172a] text-white h-full flex flex-col">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 shrink-0" style={{ backgroundColor: '#111229' }}>
         <div className="flex items-center gap-3">
           <div 
-            className="w-8 h-8 rounded-lg flex items-center justify-center border"
+            className="w-8 h-8 rounded-lg flex items-center justify-center border shrink-0"
             style={{
               backgroundColor: '#00C3D0',
               borderColor: '#160c0c',
@@ -35,7 +35,7 @@ export const Sidebar: React.FC = () => {
             <span style={{ color: '#100f0f', fontWeight: 'bold' }}>C</span>
           </div>
           <span 
-            className="text-xl tracking-tight text-white"
+            className="text-xl tracking-tight text-white truncate"
             style={{
               fontFamily: 'Georgia',
               fontWeight: 'bold',
@@ -44,6 +44,11 @@ export const Sidebar: React.FC = () => {
             }}
           >Calista CRM</span>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="md:hidden p-1 hover:bg-slate-800 rounded-md">
+            <X className="w-5 h-5 text-slate-400" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1" style={{ backgroundColor: '#00b1bd' }}>
@@ -54,8 +59,9 @@ export const Sidebar: React.FC = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onClose}
             className={({ isActive }) => cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
+              "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors min-h-[44px]",
               isActive 
                 ? "bg-blue-600/20 text-blue-400" 
                 : "hover:bg-slate-800"
@@ -68,20 +74,20 @@ export const Sidebar: React.FC = () => {
               backgroundColor: index === 0 ? '#00C3D0' : undefined
             }}
           >
-            <item.icon className="w-5 h-5" />
-            {item.label}
+            <item.icon className="w-5 h-5 shrink-0" />
+            <span className="truncate">{item.label}</span>
           </NavLink>
         ))}
       </div>
 
-      <div className="p-4 border-t border-slate-800" style={{}}>
+      <div className="p-4 border-t border-slate-800 shrink-0" style={{}}>
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors min-h-[44px]"
           style={{ color: '#eff4f4' }}
         >
-          <LogOut className="w-5 h-5" />
-          Sign Out
+          <LogOut className="w-5 h-5 shrink-0" />
+          <span className="truncate">Sign Out</span>
         </button>
       </div>
     </aside>
