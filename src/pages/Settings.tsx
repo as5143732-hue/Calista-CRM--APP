@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2 } from 'lucide-react';
+import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { Modal } from '../components/ui/Modal';
 
 interface AppUserWithId extends AppUser {
   id: string;
@@ -22,6 +23,13 @@ export const Settings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordChangeMessage, setPasswordChangeMessage] = useState({ type: '', text: '' });
+
+  // Add User Modal State
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserActive, setNewUserActive] = useState(true);
+  const [addUserError, setAddUserError] = useState('');
 
   useEffect(() => {
     if (activeTab === 'users' && user?.role === 'admin') {
@@ -73,6 +81,40 @@ export const Settings: React.FC = () => {
       setAppUsers(prev => prev.filter(u => u.id !== userId));
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `appUsers/${userId}`);
+    }
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddUserError('');
+    if (!newUserEmail || !newUserPassword) {
+      setAddUserError('يجب إدخال البريد الإلكتروني وكلمة المرور');
+      return;
+    }
+    const safeEmail = newUserEmail.trim();
+    try {
+      const userRef = doc(db, 'appUsers', safeEmail);
+      const exists = appUsers.some(d => d.id === safeEmail || d.email === safeEmail);
+      if (exists) {
+         setAddUserError('البريد الإلكتروني موجود مسبقاً');
+         return;
+      }
+      
+      const newAppUserData = {
+        email: safeEmail,
+        password: newUserPassword,
+        isActive: newUserActive
+      };
+      
+      await setDoc(userRef, newAppUserData);
+      setAppUsers([...appUsers, { id: safeEmail, ...newAppUserData }]);
+      setIsAddUserModalOpen(false);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserActive(true);
+    } catch (error) {
+      setAddUserError('حدث خطأ أثناء إضافة المستخدم');
+      console.error(error);
     }
   };
 
@@ -190,10 +232,19 @@ export const Settings: React.FC = () => {
 
           {activeTab === 'users' && user?.role === 'admin' && (
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" />
-                إدارة الوصول للمستخدمين
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-600" />
+                  إدارة الوصول للمستخدمين
+                </h2>
+                <button
+                  onClick={() => setIsAddUserModalOpen(true)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  إضافة مستخدم
+                </button>
+              </div>
 
               {loadingUsers ? (
                 <div className="text-center py-10 text-slate-500">جاري التحميل...</div>
@@ -203,6 +254,7 @@ export const Settings: React.FC = () => {
                     <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
+                        <th className="px-4 py-3 font-medium">نوع الحساب</th>
                         <th className="px-4 py-3 font-medium">حالة التفعيل</th>
                         <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
                       </tr>
@@ -212,6 +264,17 @@ export const Settings: React.FC = () => {
                         <tr key={appUser.id} className="bg-white hover:bg-slate-50/50 transition-colors">
                           <td className="px-4 py-4 font-medium text-slate-800" dir="ltr">
                             {appUser.email}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-slate-600">
+                            {appUser.id.includes('@') ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium border border-amber-100">
+                                مضاف يدويًا
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                                مسجل دخول
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-4">
                             <button
@@ -348,6 +411,67 @@ export const Settings: React.FC = () => {
           )}
         </div>
       </div>
+      <Modal isOpen={isAddUserModalOpen} onClose={() => setIsAddUserModalOpen(false)} title="إضافة مستخدم جديد">
+        <form onSubmit={handleAddUser} className="space-y-4" dir="rtl">
+          {addUserError && (
+            <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
+              {addUserError}
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">البريد الإلكتروني</label>
+            <input 
+              type="email" 
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
+              value={newUserEmail}
+              onChange={(e) => setNewUserEmail(e.target.value)}
+              dir="ltr"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">كلمة المرور الابتدائية</label>
+            <input 
+              type="text" 
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
+              value={newUserPassword}
+              onChange={(e) => setNewUserPassword(e.target.value)}
+              dir="ltr"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              type="button"
+              onClick={() => setNewUserActive(!newUserActive)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${newUserActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${newUserActive ? 'translate-x-1' : 'translate-x-6'}`} />
+            </button>
+            <span className="text-sm font-medium text-slate-700">تفعيل الحساب فوراً</span>
+          </div>
+
+          <div className="pt-6 flex gap-3">
+            <button 
+              type="submit" 
+              className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+            >
+              إضافة المستخدم
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setIsAddUserModalOpen(false)}
+              className="flex-1 bg-slate-100 text-slate-700 px-4 py-2.5 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+            >
+              إلغاء
+            </button>
+          </div>
+        </form>
+      </Modal>
+
     </div>
   );
 };

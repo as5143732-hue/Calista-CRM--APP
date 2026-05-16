@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, loginWithGoogle, logoutGoogle, db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export interface User {
   name: string;
@@ -92,7 +92,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (appUserDoc.exists()) {
             setAppUser(appUserDoc.data() as AppUser);
           } else {
-            const newAppUser: AppUser = {
+            let manualData = null;
+            if (u.email) {
+              const manualUserRef = doc(db, 'appUsers', u.email);
+              const manualUserDoc = await getDoc(manualUserRef);
+              if (manualUserDoc.exists()) {
+                manualData = manualUserDoc.data();
+                await deleteDoc(manualUserRef);
+              }
+            }
+
+            const newAppUser: AppUser = manualData ? (manualData as AppUser) : {
               email: u.email || '',
               password: '',
               isActive: false
