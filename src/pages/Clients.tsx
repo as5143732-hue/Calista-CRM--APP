@@ -90,7 +90,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
   return (
     <div 
       onClick={() => navigate(`/clients/${client.id}`)}
-      className="bg-[#244648] rounded-[24px] p-4 sm:p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-full flex flex-col sm:h-[250px] overflow-hidden"
+      className="bg-[#6d898d] rounded-[24px] p-4 sm:p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-full flex flex-col sm:h-[250px] overflow-hidden"
     >
         <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[170px_1fr] gap-3 sm:gap-4 h-full">
             
