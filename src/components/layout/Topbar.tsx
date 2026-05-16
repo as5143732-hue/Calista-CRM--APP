@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Bell, User as UserIcon, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -30,9 +31,18 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
       
       {/* Mobile only logo since sidebar is hidden */}
       <div className="sm:hidden flex items-center gap-2 font-bold text-slate-800 italic absolute left-1/2 -translate-x-1/2">
-        <div className="w-9 h-9 rounded-lg bg-[#00C3D0] flex items-center justify-center text-[#100f0f] border border-[#160c0c] font-serif not-italic font-bold text-lg shadow-sm">
-          C
-        </div>
+          <img 
+            src={logoUrl} 
+            alt="Calista Logo" 
+            className="w-10 h-10 object-contain shrink-0"
+            style={{ borderWidth: '0px', borderRadius: '21px' }}
+            onError={(e) => {
+              // Fallback if logo.png is not yet uploaded
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23111229'/%3E%3Ctext x='50%' y='50%' font-family='serif' font-size='40' font-weight='bold' fill='%23d4af37' text-anchor='middle' dominant-baseline='central'%3ECI%3C/text%3E%3C/svg%3E";
+            }}
+          />
       </div>
       
       <div className="flex items-center gap-2 md:gap-4 ml-auto sm:ml-0">

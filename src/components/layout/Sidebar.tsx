@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
+import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
 export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
   const { logout } = useAuth();
@@ -17,30 +18,28 @@ export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
   return (
     <aside className="w-64 bg-[#0f172a] text-white h-full flex flex-col">
-      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 shrink-0" style={{ backgroundColor: '#111229' }}>
+      <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 shrink-0" style={{ backgroundColor: '#e2ece5', color: '#0a0a0a' }}>
         <div className="flex items-center gap-3">
-          <div 
-            className="w-8 h-8 rounded-lg flex items-center justify-center border shrink-0"
-            style={{
-              backgroundColor: '#00C3D0',
-              borderColor: '#160c0c',
-              textAlign: 'center',
-              fontStyle: 'italic',
-              fontFamily: 'Verdana',
-              lineHeight: '25px',
-              fontSize: '19px',
-              color: '#312323'
+          <img 
+            src={logoUrl} 
+            alt="Calista Logo" 
+            className="w-10 h-10 object-contain shrink-0"
+            style={{ borderWidth: '0px', borderRadius: '21px' }}
+            onError={(e) => {
+              // Fallback if logo.png is not yet uploaded
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23111229'/%3E%3Ctext x='50%' y='50%' font-family='serif' font-size='40' font-weight='bold' fill='%23d4af37' text-anchor='middle' dominant-baseline='central'%3ECI%3C/text%3E%3C/svg%3E";
             }}
-          >
-            <span style={{ color: '#100f0f', fontWeight: 'bold' }}>C</span>
-          </div>
+          />
           <span 
-            className="text-xl tracking-tight text-white truncate"
+            className="text-xl tracking-tight truncate"
             style={{
               fontFamily: 'Georgia',
               fontWeight: 'bold',
               fontStyle: 'italic',
-              textAlign: 'left'
+              textAlign: 'left',
+              color: '#040404'
             }}
           >Calista CRM</span>
         </div>
@@ -80,11 +79,17 @@ export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         ))}
       </div>
 
-      <div className="p-4 border-t border-slate-800 shrink-0" style={{}}>
+      <div className="p-4 border-t border-slate-800 shrink-0" style={{ backgroundColor: '#e2ece5' }}>
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors min-h-[44px]"
-          style={{ color: '#eff4f4' }}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg transition-colors min-h-[44px] hover:opacity-90"
+          style={{ 
+            backgroundColor: '#ccd3d3',
+            color: '#000000',
+            fontWeight: 'bold',
+            fontSize: '15px',
+            lineHeight: '20px'
+          }}
         >
           <LogOut className="w-5 h-5 shrink-0" />
           <span className="truncate">Sign Out</span>
