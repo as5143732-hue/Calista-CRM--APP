@@ -24,6 +24,16 @@ export const Settings: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [passwordChangeMessage, setPasswordChangeMessage] = useState({ type: '', text: '' });
 
+  // Profile Tab State
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) {
+      setProfileName(user.name);
+    }
+  }, [user?.name]);
+
   // Add User Modal State
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -145,6 +155,23 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firebaseUser) return;
+    setIsUpdatingProfile(true);
+    try {
+      await updateDoc(doc(db, `users/${firebaseUser.uid}`), { name: profileName });
+      alert('تم تحديث الملف الشخصي بنجاح!');
+      // Assuming AuthContext automatically real-time updates user state on subsequent reads or reload
+      window.location.reload(); // Refresh to reflect new name in context and top bar
+    } catch (error) {
+       console.error("Error updating profile", error);
+       alert("حدث خطأ أثناء تحديث الملف الشخصي");
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
       <div>
@@ -190,12 +217,13 @@ export const Settings: React.FC = () => {
             <div className="max-w-md">
               <h2 className="text-lg font-semibold text-slate-900 mb-6">المعلومات الشخصية</h2>
               
-              <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); alert('Profile updated!'); }}>
+              <form className="space-y-5" onSubmit={handleProfileSubmit}>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">الاسم الكامل</label>
                   <input 
                     type="text" 
-                    defaultValue={user?.name}
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
                   />
                 </div>

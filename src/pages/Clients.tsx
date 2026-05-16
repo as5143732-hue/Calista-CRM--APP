@@ -26,7 +26,7 @@ const FILTER_STATUSES: string[] = [
   'Canceled', 'Low Budget', 'Unreachable'
 ];
 
-const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, deleteClient: any }> = ({ client, logQuickAction, user, deleteClient }) => {
+const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, deleteClient: any, usersMap: any }> = ({ client, logQuickAction, user, deleteClient, usersMap }) => {
   const navigate = useNavigate();
   const [lastActivity, setLastActivity] = useState<Activity | null>(null);
 
@@ -91,13 +91,14 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
     <div 
       onClick={() => navigate(`/clients/${client.id}`)}
       className="bg-[#6d898d] rounded-[24px] p-4 sm:p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-full flex flex-col sm:h-[250px] overflow-hidden"
+      style={{ width: '501.435px' }}
     >
         <div className="grid grid-cols-[140px_1fr] sm:grid-cols-[170px_1fr] gap-3 sm:gap-4 h-full">
             
             {/* Left Column */}
             <div className="flex flex-col justify-between h-full sm:w-[170px] w-full">
                 {/* Name */}
-                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 mb-2 sm:mb-0">
+                <div className="bg-white px-2 py-2 flex items-center gap-2 mb-2 sm:mb-0" style={{ borderRadius: '30px', borderWidth: '0px', height: '32.9745px', width: '146.975px' }}>
                     <div className="bg-[#6db5a4] rounded-full p-1.5 shrink-0 flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                     </div>
@@ -106,21 +107,21 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
 
                 {/* Phone */}
                 <div className="flex items-center gap-2 mb-2 sm:mb-0">
-                    <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 flex-1 min-w-0">
+                    <div className="bg-white px-2 py-2 flex items-center gap-2 flex-1 min-w-0" style={{ borderRadius: '11px', height: '29.9907px' }}>
                         <PhoneCall className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span className="font-bold text-slate-800 text-xs truncate">{client.phone}</span>
                     </div>
                     <button 
                         onClick={(e) => handleWhatsApp(e, client.phone, client.id)}
-                        className="text-[#4bcd62] hover:text-green-400 transition-colors shrink-0 outline-none p-1"
+                        className="text-[#4bcd62] hover:text-green-400 transition-colors shrink-0 outline-none p-1 flex items-center justify-center"
                         style={{ background: 'transparent' }}
                     >
-                        <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8" strokeWidth={1.5} />
+                        <MessageCircle style={{ width: '21.9907px', height: '47.9907px' }} strokeWidth={1.5} />
                     </button>
                 </div>
 
                 {/* Project */}
-                <div className="bg-white rounded-xl px-2 py-2 flex items-center gap-2 sm:mb-2 mt-auto">
+                <div className="bg-white px-2 py-2 flex items-center gap-2 sm:mb-2 mt-auto" style={{ borderWidth: '0px', borderStyle: 'solid', borderRadius: '15px', height: '28.9792px', width: '106.988px' }}>
                     <Building2 className="w-4 h-4 text-amber-900 shrink-0" />
                     <span className="font-bold text-slate-800 text-xs truncate">{client.projectName || 'No Project'}</span>
                 </div>
@@ -130,12 +131,12 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
             <div className="flex flex-col justify-between h-full sm:pl-2 min-w-0">
                 {/* Top Row: Status & User */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 relative">
-                    <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate">
+                    <div className="bg-white font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate flex items-center justify-center" style={{ borderRadius: '23px', height: '26.9861px', width: '125.734px' }}>
                         {client.status}
                     </div>
                     {user?.role === 'admin' ? (
-                        <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate relative pr-8" title={client.salesAgent}>
-                            {client.salesAgent?.split(' ')[0] || 'Unknown'}
+                        <div className="font-bold text-white text-xs text-center w-full sm:flex-1 truncate relative pr-8 flex items-center justify-center" title={client.salesAgent} style={{ backgroundColor: '#f27878', width: '116.734px', height: '27px', borderRadius: '10px' }}>
+                            {usersMap[client.ownerId!] || client.salesAgent?.split(' ')[0] || 'Unknown'}
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -143,25 +144,25 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                                         deleteClient(client.id);
                                     }
                                 }}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-100 hover:text-red-50 hover:bg-white/20 rounded-full transition-colors"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     ) : (
-                         <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate" title={user?.name}>
-                            {user?.name?.split(' ')[0] || 'Unknown'}
+                         <div className="font-bold text-white text-xs text-center w-full sm:flex-1 truncate flex items-center justify-center" title={user?.name} style={{ backgroundColor: '#f27878', width: '116.734px', height: '27px', borderRadius: '10px' }}>
+                            {usersMap[client.ownerId!] || user?.name?.split(' ')[0] || 'Unknown'}
                         </div>
                     )}
                 </div>
 
                 {/* Middle Box: Last Action */}
-                <div className="bg-white rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center min-h-[70px] sm:min-h-[90px] w-full text-center my-2 shadow-sm flex-1">
+                <div className="rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center min-h-[70px] sm:min-h-[90px] w-full text-center my-2 shadow-sm flex-1" style={{ backgroundColor: '#c9d4d4' }}>
                     <span className="font-bold text-slate-800 text-sm mb-1">
                         {lastActivity ? formatActivityName(lastActivity.type) : 'No Actions Yet'}
                     </span>
                     {lastActivity?.content && (
-                        <span className="text-xs font-medium text-slate-500 line-clamp-2 leading-tight">
+                        <span className="text-xs font-medium text-slate-600 line-clamp-2 leading-tight">
                             {lastActivity.content}
                         </span>
                     )}
@@ -169,11 +170,11 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
 
                 {/* Bottom Row: Sources & Last Date */}
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:mb-2">
-                    <div className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 w-full sm:flex-1 overflow-hidden">
+                    <div className="bg-white px-3 py-2 flex items-center gap-2 w-full sm:flex-1 overflow-hidden" style={{ width: '72.479px', borderRadius: '16px', height: '27.9907px' }}>
                         <Globe className="w-4 h-4 text-slate-500 shrink-0" />
                         <span className="font-bold text-slate-800 text-xs truncate" title={client.leadSource || 'Direct'}>{client.leadSource || 'Direct'}</span>
                     </div>
-                    <div className="bg-white rounded-xl px-2 sm:px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-[125px]">
+                    <div className="bg-white px-2 sm:px-3 py-2 flex items-center justify-center gap-1.5 w-full sm:w-[125px]" style={{ borderRadius: '16px', width: '135.988px', height: '29.9954px' }}>
                         <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span className="font-bold text-slate-800 text-[10px] truncate">
                            {lastActivity ? formatDistanceToNow(new Date(lastActivity.createdAt), { addSuffix: true }) : '---'}
@@ -188,7 +189,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
 };
 
 export const Clients: React.FC = () => {
-  const { clients, addClient, updateClient, logQuickAction, deleteClient } = useData();
+  const { clients, addClient, updateClient, logQuickAction, deleteClient, usersMap } = useData();
   const { user } = useAuth();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -300,9 +301,9 @@ export const Clients: React.FC = () => {
            </h2>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 xl:gap-6 max-w-[1600px] mx-auto pb-10">
+        <div className="flex flex-wrap gap-4 xl:gap-6 pb-10">
           {filteredClients.map((client) => (
-             <ClientCard key={client.id} client={client} logQuickAction={logQuickAction} user={user} deleteClient={deleteClient} />
+             <ClientCard key={client.id} client={client} logQuickAction={logQuickAction} user={user} deleteClient={deleteClient} usersMap={usersMap} />
           ))}
           {filteredClients.length === 0 && (
             <div className="py-20 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-white col-span-full">

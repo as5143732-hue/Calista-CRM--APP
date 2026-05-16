@@ -14,6 +14,7 @@ interface DataContextType {
   addFollowUp: (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string }) => void;
   logQuickAction: (clientId: string, type: 'call_logged' | 'call_attempt' | 'whatsapp_sent', content?: string) => void;
   refreshData: () => void;
+  usersMap: Record<string, string>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -71,8 +72,25 @@ const initialClients: Client[] = [
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [clients, setClients] = useState<Client[]>([]);
+  const [usersMap, setUsersMap] = useState<Record<string, string>>({});
   const { user, firebaseUser } = useAuth();
   const currentAgent = user?.name || 'System';
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const uMap: Record<string, string> = {};
+      snapshot.forEach(d => {
+        uMap[d.id] = d.data().name || d.data().email?.split('@')[0] || 'Unknown';
+      });
+      setUsersMap(uMap);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'users');
+    });
+    
+    return () => unsubscribeUsers();
+  }, [firebaseUser]);
 
   useEffect(() => {
     if (!firebaseUser) {
@@ -318,7 +336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <DataContext.Provider value={{ clients, addClient, updateClient, deleteClient, addNote, updateClientStatus, addFollowUp, logCall, logQuickAction, refreshData }}>
+    <DataContext.Provider value={{ clients, addClient, updateClient, deleteClient, addNote, updateClientStatus, addFollowUp, logCall, logQuickAction, refreshData, usersMap }}>
       {children}
     </DataContext.Provider>
   );

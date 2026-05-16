@@ -38,6 +38,7 @@ export interface Activity {
   previousStatus?: ClientStatus;
   newStatus?: ClientStatus;
   agentName: string;
+  ownerId?: string;
   createdAt: string;
   followUpType?: string;
   nextAction?: string;

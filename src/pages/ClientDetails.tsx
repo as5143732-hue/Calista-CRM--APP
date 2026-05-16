@@ -29,7 +29,7 @@ const PIPELINE_STAGES: { id: ClientStatus, title: string }[] = [
 export const ClientDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { clients, updateClientStatus, addNote, addFollowUp, logCall, updateClient, deleteClient } = useData();
+  const { clients, updateClientStatus, addNote, addFollowUp, logCall, updateClient, deleteClient, usersMap } = useData();
   const { firebaseUser, user } = useAuth();
   const [newNote, setNewNote] = useState('');
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
@@ -324,7 +324,7 @@ export const ClientDetails: React.FC = () => {
                 </div>
                 <div className="flex items-start gap-4">
                   <div className="bg-slate-100 p-2 rounded-lg text-slate-500"><User className="w-5 h-5" /></div>
-                  <div><p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Assigned Agent</p><p className="font-medium text-slate-900">{client.salesAgent}</p></div>
+                  <div><p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Assigned Agent</p><p className="font-medium text-slate-900">{usersMap[client.ownerId!] || client.salesAgent}</p></div>
                 </div>
               </div>
             </div>
@@ -433,9 +433,9 @@ export const ClientDetails: React.FC = () => {
 
                         <div className="mt-4 pt-3 border-t border-slate-50 flex items-center gap-2">
                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                             {activity.agentName?.charAt(0) || 'U'}
+                             {(usersMap[activity.ownerId!] || activity.agentName)?.charAt(0) || 'U'}
                            </div>
-                           <span className="text-xs font-medium text-slate-500">{activity.agentName}</span>
+                           <span className="text-xs font-medium text-slate-500">{usersMap[activity.ownerId!] || activity.agentName}</span>
                         </div>
                       </div>
                     </div>
@@ -483,7 +483,7 @@ export const ClientDetails: React.FC = () => {
                      <p className="text-sm text-indigo-700 mt-1">Due: {a.nextFollowUpDate ? format(new Date(a.nextFollowUpDate), 'MMM d, yyyy') : 'No Date'}</p>
                    </div>
                    <div className="text-xs text-indigo-500 bg-indigo-100 px-3 py-1 rounded-full font-bold">
-                     Created by {a.agentName}
+                     Created by {usersMap[a.ownerId!] || a.agentName}
                    </div>
                  </div>
                ))}

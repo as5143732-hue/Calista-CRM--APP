@@ -66,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (u) {
         let currentRole = 'user';
+        let currentName = u.displayName || u.email?.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || 'User';
         
         try {
           // Handle 'users' collection
@@ -74,12 +75,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (userDoc.exists()) {
             currentRole = userDoc.data().role;
+            if (userDoc.data().name) {
+              currentName = userDoc.data().name;
+            }
           } else {
             // New user, create document
             const determinedRole = u.email === 'as5143732@gmail.com' ? 'admin' : 'user';
             currentRole = determinedRole;
             await setDoc(userDocRef, {
               email: u.email,
+              name: currentName,
               role: determinedRole,
               createdAt: new Date().toISOString()
             });
@@ -118,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         setUser({
-          name: u.displayName || u.email?.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || 'User',
+          name: currentName,
           email: u.email || '',
           role: currentRole,
           avatar: u.photoURL || undefined

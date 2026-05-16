@@ -163,7 +163,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Assigned To (User)</label>
                 <select className="w-full px-3 py-2 border border-slate-300 bg-slate-50 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}>
                   <option value="">Assign to me</option>
-                  {usersList.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                  {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
             )}
