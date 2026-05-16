@@ -102,7 +102,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users_or_appUsers_fetch`);
+          try {
+            handleFirestoreError(error, OperationType.GET, `users_or_appUsers_fetch`);
+          } catch(e) { console.error(e); }
         }
         
         setUser({

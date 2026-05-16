@@ -6,14 +6,24 @@ export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSignIn = async () => {
     try {
+      setIsLoggingIn(true);
+      setError('');
       await login();
-      navigate('/');
+      // Wait for useEffect to navigate
     } catch (err) {
-      setError('Failed to sign in with Google');
+      setError('فشل تسجيل الدخول باستخدام جوجل');
       console.error(err);
+      setIsLoggingIn(false);
     }
   };
 
