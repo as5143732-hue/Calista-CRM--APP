@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Client, ClientStatus } from '../../types';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../../firebase';
 
 interface ClientFormProps {
   initialData?: Client;
@@ -17,8 +20,30 @@ const statusOptions: ClientStatus[] = [
 
 export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, onCancel }) => {
   const { addNote } = useData();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'notes'>('details');
   const [newNote, setNewNote] = useState('');
+  const [usersList, setUsersList] = useState<{id: string, name: string, email: string}[]>([]);
+  const [assignedUserId, setAssignedUserId] = useState<string>('');
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const fetchUsers = async () => {
+        try {
+          const snapshot = await getDocs(collection(db, 'users'));
+          const users = snapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name || doc.data().email?.split('@')[0] || 'Unknown',
+            email: doc.data().email || ''
+          }));
+          setUsersList(users);
+        } catch (err) {
+          console.error("Error fetching users list for admin assignment", err);
+        }
+      };
+      fetchUsers();
+    }
+  }, [user]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -53,6 +78,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
         propertyType: initialData.propertyType || 'Residential',
         preferredLocation: initialData.preferredLocation || '',
       });
+      if (initialData.ownerId) {
+        setAssignedUserId(initialData.ownerId);
+      }
     }
   }, [initialData]);
 
@@ -65,6 +93,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       leadScore: formData.leadScore,
       propertyType: formData.propertyType,
     };
+    if (user?.role === 'admin' && assignedUserId) {
+       result.ownerId = assignedUserId;
+       const assignedUser = usersList.find(u => u.id === assignedUserId);
+       if (assignedUser) {
+         result.salesAgent = assignedUser.name;
+       }
+    }
     if (formData.phone) result.phone = formData.phone;
     if (formData.email) result.email = formData.email;
     if (formData.projectName) result.projectName = formData.projectName;
@@ -122,6 +157,17 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
                 {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+            
+            {user?.role === 'admin' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Assigned To (User)</label>
+                <select className="w-full px-3 py-2 border border-slate-300 bg-slate-50 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}>
+                  <option value="">Assign to me</option>
+                  {usersList.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                </select>
+              </div>
+            )}
+            
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
               <input type="tel" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />

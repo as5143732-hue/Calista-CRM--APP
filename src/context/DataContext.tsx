@@ -100,13 +100,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, [firebaseUser, user]);
 
-  const addClient = async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'notes' | 'activities'>) => {
+  const addClient = async (clientData: Partial<Client>) => {
     if (!firebaseUser) return;
     try {
       const newClientRef = doc(collection(db, 'clients'));
+      const finalOwnerId = clientData.ownerId || firebaseUser.uid;
+      const finalSalesAgent = clientData.salesAgent && clientData.salesAgent !== 'Current User' ? clientData.salesAgent : currentAgent;
+      
       const newClient = {
         ...clientData,
-        ownerId: firebaseUser.uid,
+        salesAgent: finalSalesAgent,
+        ownerId: finalOwnerId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -118,9 +122,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const activityRef = doc(collection(db, `clients/${newClientRef.id}/activities`));
       await setDoc(activityRef, {
         clientId: newClientRef.id,
-        ownerId: firebaseUser.uid,
+        ownerId: finalOwnerId,
         type: 'client_created',
-        agentName: currentAgent,
+        agentName: finalSalesAgent,
         createdAt: new Date().toISOString()
       });
     } catch (error) {

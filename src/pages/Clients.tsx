@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, Filter, Phone, MessageCircle, Calendar as CalendarIcon, Bell, CalendarPlus, User, Building2, Globe, Clock, PhoneCall } from 'lucide-react';
+import { Plus, Search, Filter, Phone, MessageCircle, Calendar as CalendarIcon, Bell, CalendarPlus, User, Building2, Globe, Clock, PhoneCall, Trash2 } from 'lucide-react';
 import { StatusBadge } from '../components/ui/Badge';
 import { formatCurrency } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
@@ -26,7 +26,7 @@ const FILTER_STATUSES: string[] = [
   'Canceled', 'Low Budget', 'Unreachable'
 ];
 
-const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any }> = ({ client, logQuickAction, user }) => {
+const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, deleteClient: any }> = ({ client, logQuickAction, user, deleteClient }) => {
   const navigate = useNavigate();
   const [lastActivity, setLastActivity] = useState<Activity | null>(null);
 
@@ -129,13 +129,24 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any }> =
             {/* Right Column */}
             <div className="flex flex-col justify-between h-full sm:pl-2 min-w-0">
                 {/* Top Row: Status & User */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 relative">
                     <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate">
                         {client.status}
                     </div>
                     {user?.role === 'admin' ? (
-                        <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate" title={client.salesAgent}>
+                        <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate relative pr-8" title={client.salesAgent}>
                             {client.salesAgent?.split(' ')[0] || 'Unknown'}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm("هل أنت متأكد من حذف بيانات هذا العميل؟")) {
+                                        deleteClient(client.id);
+                                    }
+                                }}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                     ) : (
                          <div className="bg-white rounded-full px-3 sm:px-4 py-1.5 font-bold text-slate-800 text-xs text-center w-full sm:flex-1 truncate" title={user?.name}>
@@ -177,7 +188,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any }> =
 };
 
 export const Clients: React.FC = () => {
-  const { clients, addClient, updateClient, logQuickAction } = useData();
+  const { clients, addClient, updateClient, logQuickAction, deleteClient } = useData();
   const { user } = useAuth();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -291,7 +302,7 @@ export const Clients: React.FC = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 xl:gap-6 max-w-[1600px] mx-auto pb-10">
           {filteredClients.map((client) => (
-             <ClientCard key={client.id} client={client} logQuickAction={logQuickAction} user={user} />
+             <ClientCard key={client.id} client={client} logQuickAction={logQuickAction} user={user} deleteClient={deleteClient} />
           ))}
           {filteredClients.length === 0 && (
             <div className="py-20 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-2xl bg-white col-span-full">

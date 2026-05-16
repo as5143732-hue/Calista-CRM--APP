@@ -36,7 +36,7 @@ service cloud.firestore {
     function isValidClient(data) {
       return data.keys().hasAll(['name', 'ownerId', 'status', 'createdAt', 'updatedAt'])
         && data.name is string && data.name.size() <= 200
-        && data.ownerId == request.auth.uid
+        && (data.ownerId == request.auth.uid || isAdmin())
         && data.status is string && data.status.size() <= 100
         && data.createdAt is string && data.createdAt.size() <= 100
         && data.updatedAt is string && data.updatedAt.size() <= 100
@@ -53,7 +53,7 @@ service cloud.firestore {
     function isValidActivity(data, clientId) {
       return data.keys().hasAll(['clientId', 'ownerId', 'type', 'agentName', 'createdAt'])
         && data.clientId == clientId
-        && data.ownerId == request.auth.uid
+        && (data.ownerId == request.auth.uid || isAdmin())
         && data.type is string && data.type.size() <= 100
         && data.agentName is string && data.agentName.size() <= 200
         && data.createdAt is string && data.createdAt.size() <= 100
@@ -115,7 +115,7 @@ service cloud.firestore {
         && isValidId(clientId)
         && (existing().ownerId == request.auth.uid || isAdmin())
         && isValidClient(incoming())
-        && incoming().ownerId == existing().ownerId
+        && (incoming().ownerId == existing().ownerId || isAdmin())
         && incoming().createdAt == existing().createdAt;
         
       allow delete: if isSignedIn() 
@@ -135,7 +135,7 @@ service cloud.firestore {
           && isValidId(activityId)
           && (existing().ownerId == request.auth.uid || isAdmin())
           && isValidActivity(incoming(), clientId)
-          && incoming().ownerId == existing().ownerId
+          && (incoming().ownerId == existing().ownerId || isAdmin())
           && incoming().createdAt == existing().createdAt;
           
         allow delete: if isSignedIn()

@@ -29,7 +29,7 @@ const PIPELINE_STAGES: { id: ClientStatus, title: string }[] = [
 export const ClientDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { clients, updateClientStatus, addNote, addFollowUp, logCall, updateClient } = useData();
+  const { clients, updateClientStatus, addNote, addFollowUp, logCall, updateClient, deleteClient } = useData();
   const { firebaseUser, user } = useAuth();
   const [newNote, setNewNote] = useState('');
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
@@ -162,6 +162,13 @@ export const ClientDetails: React.FC = () => {
     }
   };
 
+  const handleDelete = () => {
+    if (window.confirm("هل أنت متأكد من حذف بيانات هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.")) {
+      deleteClient(client.id);
+      navigate('/clients');
+    }
+  };
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'status_change': return <CheckCircle2 className="w-4 h-4 text-white" />;
@@ -249,6 +256,12 @@ export const ClientDetails: React.FC = () => {
              <Edit2 className="w-4 h-4" />
              Edit Profile
           </button>
+          
+          {user?.role === 'admin' && (
+            <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
+               حذف العميل
+            </button>
+          )}
         </div>
       </div>
 
