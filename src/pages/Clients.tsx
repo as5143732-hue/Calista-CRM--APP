@@ -195,12 +195,16 @@ export const Clients: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
+  const [userFilter, setUserFilter] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>(undefined);
 
   // Extract unique projects for the filter dropdown
   const uniqueProjects = Array.from(new Set(clients.map(c => c.projectName).filter(Boolean)));
+  
+  // Extract unique users (agents) for the filter dropdown
+  const uniqueUsers = Array.from(new Set(clients.map(c => c.ownerId || c.salesAgent).filter(Boolean)));
 
   const filteredClients = clients.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -211,8 +215,9 @@ export const Clients: React.FC = () => {
     const matchTargetStatus = statusFilter === 'Fresh Lead' ? 'My Fresh Lead' : statusFilter;
     const matchesStatus = statusFilter ? c.status === matchTargetStatus : true;
     const matchesProject = projectFilter ? c.projectName === projectFilter : true;
+    const matchesUser = userFilter ? (c.ownerId === userFilter || c.salesAgent === userFilter) : true;
 
-    return matchesSearch && matchesStatus && matchesProject;
+    return matchesSearch && matchesStatus && matchesProject && matchesUser;
   }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   const handleAddOrEdit = (data: any) => {
@@ -290,6 +295,21 @@ export const Clients: React.FC = () => {
                ))}
              </select>
            </div>
+
+           {user?.role === 'admin' && (
+             <div className="w-40 sm:w-48 shrink-0 snap-start">
+               <select 
+                 value={userFilter}
+                 onChange={(e) => setUserFilter(e.target.value)}
+                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium text-slate-800"
+               >
+                 <option value="">All Users/Agents</option>
+                 {uniqueUsers.map(u => (
+                   <option key={u} value={u}>{usersMap[u] || u}</option>
+                 ))}
+               </select>
+             </div>
+           )}
         </div>
       </div>
 
