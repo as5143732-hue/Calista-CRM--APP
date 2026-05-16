@@ -88,18 +88,18 @@ service cloud.firestore {
     }
 
     match /appUsers/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow read: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == userId || isAdmin());
       allow list: if isAdmin();
       allow create: if isSignedIn() 
-        && isValidId(userId) 
-        && request.auth.uid == userId
+        && userId.size() <= 128 
+        && (request.auth.uid == userId || isAdmin())
         && isValidAppUser(incoming());
       allow update: if isAdmin() || (
         isSignedIn() && 
         request.auth.uid == userId && 
         incoming().diff(existing()).affectedKeys().hasOnly(['password'])
       );
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == userId);
     }
 
     match /clients/{clientId} {
