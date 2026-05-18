@@ -49,10 +49,23 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
     return () => unsubscribe();
   }, [client.id]);
 
-  const handleWhatsApp = (e: React.MouseEvent, phone: string, clientId: string) => {
+  const handleWhatsApp = (e: React.MouseEvent, phone: string) => {
     e.stopPropagation();
-    logQuickAction(clientId, 'whatsapp_sent');
-    window.open(`https://wa.me/2${phone.replace(/[^0-9]/g, '')}`, '_blank');
+    
+    // Clean to digits only
+    let cleaned = phone.replace(/\D/g, '');
+    
+    // If it starts with 00, remove it
+    if (cleaned.startsWith('00')) {
+      cleaned = cleaned.substring(2);
+    }
+    
+    // If Egyptian 01... (11 digits), prepend 2
+    if (cleaned.startsWith('01') && cleaned.length === 11) {
+      cleaned = '2' + cleaned;
+    }
+    
+    window.open(`https://wa.me/${cleaned}`, '_blank');
   };
 
   const formatActivityName = (type: string) => {
@@ -112,7 +125,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                     <span className="font-bold text-slate-800 text-[13px] truncate">{client.phone}</span>
                 </div>
                 <button 
-                    onClick={(e) => handleWhatsApp(e, client.phone, client.id)}
+                    onClick={(e) => handleWhatsApp(e, client.phone)}
                     className="text-[#4bcd62] hover:text-[#3da750] transition-colors shrink-0 p-1 flex items-center justify-center outline-none"
                     title="Send WhatsApp"
                 >
@@ -195,7 +208,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                     <span className="font-bold text-slate-800 text-xs truncate">{client.phone}</span>
                 </div>
                 <button 
-                    onClick={(e) => handleWhatsApp(e, client.phone, client.id)}
+                    onClick={(e) => handleWhatsApp(e, client.phone)}
                     className="text-[#4bcd62] p-1 outline-none"
                 >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
@@ -246,12 +259,33 @@ export const Clients: React.FC = () => {
   const { clients, addClient, updateClient, logQuickAction, deleteClient, usersMap } = useData();
   const { user } = useAuth();
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [followUpDateFrom, setFollowUpDateFrom] = useState('');
-  const [followUpDateTo, setFollowUpDateTo] = useState('');
+  const getInitialFilters = () => {
+    try {
+      const saved = sessionStorage.getItem('clientsFilterState');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  };
+
+  const initialFilters = getInitialFilters();
+
+  const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm || '');
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(initialFilters?.selectedStatuses || []);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>(initialFilters?.selectedProjects || []);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>(initialFilters?.selectedUsers || []);
+  const [followUpDateFrom, setFollowUpDateFrom] = useState(initialFilters?.followUpDateFrom || '');
+  const [followUpDateTo, setFollowUpDateTo] = useState(initialFilters?.followUpDateTo || '');
+
+  useEffect(() => {
+    sessionStorage.setItem('clientsFilterState', JSON.stringify({
+      searchTerm,
+      selectedStatuses,
+      selectedProjects,
+      selectedUsers,
+      followUpDateFrom,
+      followUpDateTo
+    }));
+  }, [searchTerm, selectedStatuses, selectedProjects, selectedUsers, followUpDateFrom, followUpDateTo]);
   
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);

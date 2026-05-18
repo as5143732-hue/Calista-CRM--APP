@@ -9,6 +9,14 @@ export const Login: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
+    const msg = localStorage.getItem('session_expired_message');
+    if (msg) {
+      setError(msg);
+      localStorage.removeItem('session_expired_message');
+    }
+  }, []);
+
+  useEffect(() => {
     if (user) {
       navigate('/');
     }

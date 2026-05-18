@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Outlet, Navigate } from 'react-router-dom';
@@ -11,6 +11,20 @@ export const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      const loginTime = localStorage.getItem('login_time');
+      const now = Date.now();
+      
+      // If no login_time or if 24 hours have passed
+      if (!loginTime || now - parseInt(loginTime, 10) >= 86400000) {
+        localStorage.clear();
+        localStorage.setItem('session_expired_message', 'انتهت الجلسة، يرجى تسجيل الدخول مجدداً');
+        logout();
+      }
+    }
+  }, [user, logout]);
 
   if (!user) {
     return <Navigate to="/login" replace />;

@@ -141,11 +141,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async () => {
     await loginWithGoogle();
+    localStorage.setItem('login_time', Date.now().toString());
   };
 
   const logout = async () => {
     await logoutGoogle();
     setIsAppPasswordVerified(false);
+    localStorage.removeItem('login_time');
   };
 
   const verifyAppPassword = (password: string) => {
