@@ -265,6 +265,35 @@ export const ClientDetails: React.FC = () => {
         </div>
       </div>
 
+      {/* Progress Tracker Pipeline */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto mt-6">
+        <div className="flex items-center justify-between min-w-[600px] relative">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-100 -z-10 rounded-full"></div>
+          {PIPELINE_STAGES.map((stage, idx) => {
+            const isCompleted = currentStageIndex >= idx;
+            const isCurrent = currentStageIndex === idx || (currentStageIndex === -1 && idx === 0);
+            
+            return (
+              <div 
+                key={stage.id} 
+                className={`flex flex-col items-center gap-2 flex-1 ${isCompleted ? '' : 'opacity-50'}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all border-4 ${
+                  isCurrent ? 'bg-blue-600 text-white border-blue-100 scale-110 shadow-md ring-4 ring-blue-500/20' : 
+                  isCompleted ? 'bg-blue-600 text-white border-white' : 'bg-slate-200 text-slate-500 border-white'
+                }`}>
+                  {idx + 1}
+                </div>
+                <span className={`text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isCurrent ? 'text-blue-600' : isCompleted ? 'text-slate-700' : 'text-slate-400 group-hover:text-slate-600'
+                }`}>
+                  {stage.title}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="flex bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm mt-6">
         <button onClick={() => setActiveTab('overview')} className={`px-6 py-4 text-sm font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors ${activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>Overview</button>
@@ -377,41 +406,10 @@ export const ClientDetails: React.FC = () => {
                         </div>
                         
                         {activity.type === 'status_change' && (
-                          <div className="mt-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-                            <div className="flex items-center gap-2 mb-4">
-                              <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">{activity.previousStatus}</span>
-                              <ChevronRight className="w-4 h-4 text-slate-400" />
-                              <span className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-xs font-bold">{activity.newStatus}</span>
-                            </div>
-                            
-                            <div className="flex items-center justify-between min-w-[400px] sm:min-w-[500px] relative mt-6 mb-2 overflow-x-auto pb-4">
-                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 -z-10 rounded-full"></div>
-                              {PIPELINE_STAGES.map((stage, sIdx) => {
-                                const stageIdx = PIPELINE_STAGES.findIndex(s => s.id === activity.newStatus);
-                                // if status not in pipeline, assume it was completed up to a point or none
-                                const isCompleted = stageIdx >= sIdx;
-                                const isCurrent = stageIdx === sIdx || (stageIdx === -1 && sIdx === 0);
-                                
-                                return (
-                                  <div 
-                                    key={stage.id} 
-                                    className={`flex flex-col items-center gap-2 flex-1 ${isCompleted ? '' : 'opacity-50'}`}
-                                  >
-                                    <div className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-all border-4 ${
-                                      isCurrent ? 'bg-blue-600 text-white border-blue-100 scale-110 shadow-md ring-4 ring-blue-500/20' : 
-                                      isCompleted ? 'bg-blue-600 text-white border-white' : 'bg-slate-200 text-slate-500 border-white'
-                                    }`}>
-                                      {sIdx + 1}
-                                    </div>
-                                    <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${
-                                      isCurrent ? 'text-blue-600' : isCompleted ? 'text-slate-700' : 'text-slate-400'
-                                    }`}>
-                                      {stage.title}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                          <div className="flex items-center gap-2 mt-4">
+                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">{activity.previousStatus}</span>
+                            <ChevronRight className="w-4 h-4 text-slate-400" />
+                            <span className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded text-xs font-bold">{activity.newStatus}</span>
                           </div>
                         )}
 

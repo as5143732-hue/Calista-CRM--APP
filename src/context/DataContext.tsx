@@ -118,6 +118,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, [firebaseUser, user]);
 
+  const normalizeProjectName = (name?: string) => {
+    if (!name) return '';
+    return name.trim().replace(/\s+/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.substring(1).toLowerCase()).join(' ');
+  };
+
   const addClient = async (clientData: Partial<Client>) => {
     if (!firebaseUser) return;
     try {
@@ -127,6 +132,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const newClient = {
         ...clientData,
+        projectName: normalizeProjectName(clientData.projectName),
         salesAgent: finalSalesAgent,
         ownerId: finalOwnerId,
         createdAt: new Date().toISOString(),
@@ -160,7 +166,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const clientRef = doc(db, 'clients', id);
-      const updateData = { ...updates, updatedAt: new Date().toISOString() };
+      const updateData = { 
+        ...updates, 
+        ...(updates.projectName ? { projectName: normalizeProjectName(updates.projectName) } : {}),
+        updatedAt: new Date().toISOString() 
+      };
       await updateDoc(clientRef, updateData);
 
       const hasStatusChange = updates.status && updates.status !== client.status;

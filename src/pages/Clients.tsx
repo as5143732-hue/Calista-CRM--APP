@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, Filter, Phone, MessageCircle, Calendar as CalendarIcon, Bell, CalendarPlus, User, Building2, Globe, Clock, PhoneCall, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Phone, MessageCircle, Calendar as CalendarIcon, Bell, CalendarPlus, User, Building2, Globe, Clock, PhoneCall, Trash2, ChevronDown } from 'lucide-react';
 import { StatusBadge } from '../components/ui/Badge';
 import { formatCurrency } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
@@ -194,8 +194,11 @@ export const Clients: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [projectFilter, setProjectFilter] = useState('');
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [isProjectsDropdownOpen, setIsProjectsDropdownOpen] = useState(false);
   const [userFilter, setUserFilter] = useState('');
+  const [followUpDateFrom, setFollowUpDateFrom] = useState('');
+  const [followUpDateTo, setFollowUpDateTo] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>(undefined);
@@ -214,10 +217,29 @@ export const Clients: React.FC = () => {
     // Handle 'Fresh Lead' map to 'My Fresh Lead'
     const matchTargetStatus = statusFilter === 'Fresh Lead' ? 'My Fresh Lead' : statusFilter;
     const matchesStatus = statusFilter ? c.status === matchTargetStatus : true;
-    const matchesProject = projectFilter ? c.projectName === projectFilter : true;
+    const matchesProject = selectedProjects.length > 0 ? selectedProjects.includes(c.projectName || '') : true;
     const matchesUser = userFilter ? (c.ownerId === userFilter || c.salesAgent === userFilter) : true;
 
-    return matchesSearch && matchesStatus && matchesProject && matchesUser;
+    let matchesDateRange = true;
+    if (followUpDateFrom || followUpDateTo) {
+      if (c.followUpDate) {
+        const d = new Date(c.followUpDate);
+        if (followUpDateFrom) {
+          const from = new Date(followUpDateFrom);
+          from.setHours(0, 0, 0, 0);
+          if (d < from) matchesDateRange = false;
+        }
+        if (followUpDateTo && matchesDateRange) {
+           const to = new Date(followUpDateTo);
+           to.setHours(23, 59, 59, 999);
+           if (d > to) matchesDateRange = false;
+        }
+      } else {
+        matchesDateRange = false;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesProject && matchesUser && matchesDateRange;
   }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   const handleAddOrEdit = (data: any) => {
@@ -270,6 +292,27 @@ export const Clients: React.FC = () => {
              />
            </div>
 
+           <div className="flex items-center gap-2 shrink-0 snap-start">
+             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+               <span className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Follow-up:</span>
+               <input 
+                  type="date"
+                  value={followUpDateFrom}
+                  onChange={e => setFollowUpDateFrom(e.target.value)}
+                  className="w-[110px] bg-transparent text-sm focus:outline-none font-medium text-slate-800"
+                  title="From Date"
+               />
+               <span className="text-slate-300">-</span>
+               <input 
+                  type="date"
+                  value={followUpDateTo}
+                  onChange={e => setFollowUpDateTo(e.target.value)}
+                  className="w-[110px] bg-transparent text-sm focus:outline-none font-medium text-slate-800"
+                  title="To Date"
+               />
+             </div>
+           </div>
+
            <div className="w-40 sm:w-48 shrink-0 snap-start">
              <select 
                value={statusFilter}
@@ -283,17 +326,42 @@ export const Clients: React.FC = () => {
              </select>
            </div>
 
-           <div className="w-40 sm:w-48 shrink-0 snap-start">
-             <select 
-               value={projectFilter}
-               onChange={(e) => setProjectFilter(e.target.value)}
-               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium text-slate-800"
+           <div className="relative w-40 sm:w-48 shrink-0 snap-start">
+             <button 
+               onClick={() => setIsProjectsDropdownOpen(!isProjectsDropdownOpen)}
+               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-left focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-slate-800 flex items-center justify-between"
              >
-               <option value="">All Projects</option>
-               {uniqueProjects.map(proj => (
-                 <option key={proj} value={proj || ''}>{proj}</option>
-               ))}
-             </select>
+               <span className="truncate">{selectedProjects.length === 0 ? 'All Projects' : `${selectedProjects.length} Projects`}</span>
+               <ChevronDown className="w-4 h-4 text-slate-400" />
+             </button>
+             {isProjectsDropdownOpen && (
+               <>
+                 <div className="fixed inset-0 z-40" onClick={() => setIsProjectsDropdownOpen(false)}></div>
+                 <div className="absolute top-full left-0 mt-1 w-full sm:w-56 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto py-1">
+                   <label className="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer">
+                     <input type="checkbox" checked={selectedProjects.length === 0} onChange={() => setSelectedProjects([])} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                     <span className="ml-2 text-sm text-slate-700 font-medium">All Projects</span>
+                   </label>
+                   {uniqueProjects.map(proj => {
+                     const pName = proj || 'No Project';
+                     return (
+                       <label key={pName} className="flex items-center px-4 py-2 hover:bg-slate-50 cursor-pointer break-words">
+                         <input 
+                           type="checkbox" 
+                           checked={selectedProjects.includes(pName)}
+                           onChange={(e) => {
+                             if(e.target.checked) setSelectedProjects([...selectedProjects, pName]);
+                             else setSelectedProjects(selectedProjects.filter(x => x !== pName));
+                           }}
+                           className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0" 
+                         />
+                         <span className="ml-2 text-sm text-slate-700">{pName}</span>
+                       </label>
+                     );
+                   })}
+                 </div>
+               </>
+             )}
            </div>
 
            {user?.role === 'admin' && (
