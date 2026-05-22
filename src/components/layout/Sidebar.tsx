@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
-export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
+export const Sidebar: React.FC = () => {
   const { logout } = useAuth();
   
   const navItems = [
@@ -43,11 +43,6 @@ export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             }}
           >Calista CRM</span>
         </div>
-        {onClose && (
-          <button onClick={onClose} className="md:hidden p-1 hover:bg-slate-800 rounded-md">
-            <X className="w-5 h-5 text-slate-400" />
-          </button>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1" style={{ backgroundColor: '#00b1bd' }}>
@@ -58,7 +53,6 @@ export const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
           <NavLink
             key={item.to}
             to={item.to}
-            onClick={onClose}
             className={({ isActive }) => cn(
               "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors min-h-[44px]",
               isActive 

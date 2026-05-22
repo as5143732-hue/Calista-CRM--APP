@@ -1,24 +1,14 @@
 import React from 'react';
-import { Search, Bell, User as UserIcon, Menu } from 'lucide-react';
+import { Search, Bell, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
-interface TopbarProps {
-  onMenuClick?: () => void;
-}
-
-export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
+export const Topbar: React.FC = () => {
   const { user } = useAuth();
   
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 shrink-0">
       <div className="flex items-center gap-4 w-full max-w-xs md:max-w-md">
-        <button 
-          onClick={onMenuClick}
-          className="md:hidden p-2.5 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center transform active:scale-95"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
         <div className="relative flex-1 hidden sm:block">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 

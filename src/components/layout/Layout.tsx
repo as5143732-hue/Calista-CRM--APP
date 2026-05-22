@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { MobileBottomNav } from './MobileBottomNav';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
@@ -8,7 +9,6 @@ import { Lock } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { user, appUser, isAppPasswordVerified, verifyAppPassword, logout } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
@@ -108,29 +108,21 @@ export const Layout: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] text-slate-800 font-sans">
-      {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={() => setIsSidebarOpen(false)} 
-        />
-      )}
-
-      {/* Sidebar - Desktop fixed, Mobile drawer */}
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:block",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <Sidebar onClose={() => setIsSidebarOpen(false)} />
+    <div className="flex min-h-screen bg-[#f8fafc] text-slate-800 font-sans pb-16 md:pb-0">
+      {/* Sidebar - Desktop fixed, Mobile hidden */}
+      <div className="hidden md:flex flex-col w-64 shrink-0 border-r border-slate-200">
+        <Sidebar />
       </div>
       
       <div className="flex-1 flex flex-col min-w-0 md:ml-0 h-screen overflow-hidden">
-        <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <Topbar />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full max-w-7xl mx-auto">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 };
