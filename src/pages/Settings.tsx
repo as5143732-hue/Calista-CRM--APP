@@ -43,6 +43,8 @@ export const Settings: React.FC = () => {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState('user');
   const [newUserActive, setNewUserActive] = useState(true);
   const [addUserError, setAddUserError] = useState('');
 
@@ -115,20 +117,36 @@ export const Settings: React.FC = () => {
       }
 
       // Create authentication credentials in Firebase Auth
-      await createAuthUserWithoutSignout(safeEmail, newUserPassword);
+      const newUser = await createAuthUserWithoutSignout(safeEmail, newUserPassword);
       
-      const userRef = doc(db, 'appUsers', safeEmail);
+      const newUid = newUser.uid;
+      
+      // Store in users collection using UID
+      const usersRef = doc(db, 'users', newUid);
+      await setDoc(usersRef, {
+        email: safeEmail,
+        name: newUserName || safeEmail.split('@')[0],
+        role: newUserRole,
+        createdAt: new Date().toISOString()
+      });
+
+      // Still create appUsers (for backward compatibility / active logic if needed)
+      // but using UID might be better? Original used email... I'll use UID to be safe, but keep original if needed.
+      // Actually, wait, original used safeEmail as id...
+      const appUserRef = doc(db, 'appUsers', newUid);
       const newAppUserData = {
         email: safeEmail,
         password: newUserPassword,
         isActive: newUserActive
       };
       
-      await setDoc(userRef, newAppUserData);
-      setAppUsers([...appUsers, { id: safeEmail, ...newAppUserData }]);
+      await setDoc(appUserRef, newAppUserData);
+      setAppUsers([...appUsers, { id: newUid, ...newAppUserData }]);
       setIsAddUserModalOpen(false);
       setNewUserEmail('');
       setNewUserPassword('');
+      setNewUserName('');
+      setNewUserRole('user');
       setNewUserActive(true);
     } catch (error: any) {
       if (error && (error.code === 'auth/email-already-in-use' || String(error).includes('email-already-in-use'))) {
@@ -542,6 +560,29 @@ export const Settings: React.FC = () => {
               onChange={(e) => setNewUserPassword(e.target.value)}
               dir="ltr"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">الاسم الكامل</label>
+            <input 
+              type="text" 
+              required
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">الدور (Role)</label>
+            <select
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              value={newUserRole}
+              onChange={(e) => setNewUserRole(e.target.value)}
+            >
+              <option value="user">مستخدم (User)</option>
+              <option value="admin">مسؤول (Admin)</option>
+            </select>
           </div>
 
           <div className="flex items-center gap-3 mt-4">

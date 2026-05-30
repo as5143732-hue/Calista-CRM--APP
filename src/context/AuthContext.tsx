@@ -25,8 +25,6 @@ interface AuthContextType {
   loginWithEmail: (email: string, password: string) => Promise<void>;
   linkEmailPasswordToGoogle: (password: string) => Promise<void>;
   logout: () => Promise<void>;
-  isAppPasswordVerified: boolean;
-  verifyAppPassword: (password: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAppPasswordVerified, setIsAppPasswordVerified] = useState(false);
   const [isIdle, setIsIdle] = useState(false);
 
   useEffect(() => {
@@ -133,7 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setUser(null);
         setAppUser(null);
-        setIsAppPasswordVerified(false);
       }
       setLoading(false);
     });
@@ -182,20 +178,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await logoutGoogle();
-    setIsAppPasswordVerified(false);
     localStorage.removeItem('login_time');
   };
 
-  const verifyAppPassword = (password: string) => {
-    if (appUser && appUser.password === password) {
-      setIsAppPasswordVerified(true);
-      return true;
-    }
-    return false;
-  };
-
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, appUser, loading, login, loginWithEmail, linkEmailPasswordToGoogle, logout, isAppPasswordVerified, verifyAppPassword }}>
+    <AuthContext.Provider value={{ user, firebaseUser, appUser, loading, login, loginWithEmail, linkEmailPasswordToGoogle, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   );

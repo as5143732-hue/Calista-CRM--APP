@@ -8,9 +8,7 @@ import { cn } from '../../lib/utils';
 import { Lock } from 'lucide-react';
 
 export const Layout: React.FC = () => {
-  const { user, appUser, isAppPasswordVerified, verifyAppPassword, logout } = useAuth();
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const { user, appUser, logout } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -45,60 +43,6 @@ export const Layout: React.FC = () => {
           <button 
             onClick={logout}
             className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            تسجيل الخروج
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // App Password prompt state
-  if (appUser && appUser.isActive && !isAppPasswordVerified) {
-    const handleVerify = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (verifyAppPassword(passwordInput)) {
-        setPasswordError('');
-      } else {
-        setPasswordError('كلمة المرور غير صحيحة');
-      }
-    };
-
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4 font-sans" dir="rtl">
-        <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">تسجيل الدخول للتطبيق</h2>
-          <p className="text-slate-600 mb-6 text-sm">
-            الرجاء إدخال كلمة مرور التطبيق الخاصة بك للمتابعة.
-          </p>
-          
-          <form onSubmit={handleVerify} className="space-y-4">
-            <div>
-              <input
-                type="password"
-                placeholder="كلمة مرور التطبيق"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                autoFocus
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-center text-lg"
-              />
-              {passwordError && <p className="text-red-500 text-sm mt-2 font-medium">{passwordError}</p>}
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-colors text-lg"
-            >
-              دخول
-            </button>
-          </form>
-
-          <button 
-            onClick={logout}
-            className="text-slate-500 hover:text-slate-600 text-sm mt-6 font-medium"
           >
             تسجيل الخروج
           </button>
