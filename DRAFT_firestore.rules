@@ -13,7 +13,7 @@ service cloud.firestore {
     }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isSignedIn() { return request.auth != null; }
     
     // Client Validation
     function isValidClient(data) {

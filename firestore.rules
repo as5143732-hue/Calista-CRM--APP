@@ -13,7 +13,7 @@ service cloud.firestore {
     }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isSignedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isSignedIn() { return request.auth != null; }
     function isAdmin() { return isSignedIn() && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/users/$(request.auth.uid)).data.role == 'admin'; }
 
     // User Validation
@@ -97,7 +97,7 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         isSignedIn() && 
         request.auth.uid == userId && 
-        incoming().diff(existing()).affectedKeys().hasOnly(['password'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['password', 'isActive', 'email'])
       );
       allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == userId);
     }

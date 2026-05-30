@@ -1,9 +1,9 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfigJson from '../firebase-applet-config.json';
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfigJson.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfigJson.authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfigJson.projectId,
@@ -17,6 +17,33 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+export const loginWithEmailAndPassword = async (email: string, password: string) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error: any) {
+    if (error && (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/operation-not-allowed')) {
+      console.warn('Authentication attempt failed with code:', error.code);
+    } else {
+      console.error('Error signing in with Email', error);
+    }
+    throw error;
+  }
+};
+
+export const createAuthUserWithoutSignout = async (email: string, password: string) => {
+  const tempAppName = 'temp-auth-' + Math.random().toString(36).substring(2, 9);
+  const tempApp = initializeApp(firebaseConfig, tempAppName);
+  const tempAuth = getAuth(tempApp);
+  try {
+    const res = await createUserWithEmailAndPassword(tempAuth, email, password);
+    await signOut(tempAuth);
+    return res.user;
+  } finally {
+    await deleteApp(tempApp);
+  }
+};
 
 export const loginWithGoogle = async () => {
   try {

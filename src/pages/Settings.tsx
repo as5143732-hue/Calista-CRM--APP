@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { db, handleFirestoreError, OperationType, createAuthUserWithoutSignout } from '../firebase';
 import { Modal } from '../components/ui/Modal';
 
 interface AppUserWithId extends AppUser {
@@ -10,7 +10,7 @@ interface AppUserWithId extends AppUser {
 }
 
 export const Settings: React.FC = () => {
-  const { user, appUser, firebaseUser } = useAuth();
+  const { user, appUser, firebaseUser, linkEmailPasswordToGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   
   // Admin User Management State
@@ -23,6 +23,11 @@ export const Settings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordChangeMessage, setPasswordChangeMessage] = useState({ type: '', text: '' });
+  
+  // Link Password State
+  const [linkPassword, setLinkPassword] = useState('');
+  const [linkMessage, setLinkMessage] = useState({ type: '', text: '' });
+  const [isLinking, setIsLinking] = useState(false);
 
   // Profile Tab State
   const [profileName, setProfileName] = useState(user?.name || '');
@@ -103,13 +108,16 @@ export const Settings: React.FC = () => {
     }
     const safeEmail = newUserEmail.trim();
     try {
-      const userRef = doc(db, 'appUsers', safeEmail);
       const exists = appUsers.some(d => d.id === safeEmail || d.email === safeEmail);
       if (exists) {
          setAddUserError('البريد الإلكتروني موجود مسبقاً');
          return;
       }
+
+      // Create authentication credentials in Firebase Auth
+      await createAuthUserWithoutSignout(safeEmail, newUserPassword);
       
+      const userRef = doc(db, 'appUsers', safeEmail);
       const newAppUserData = {
         email: safeEmail,
         password: newUserPassword,
@@ -122,8 +130,16 @@ export const Settings: React.FC = () => {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserActive(true);
-    } catch (error) {
-      setAddUserError('حدث خطأ أثناء إضافة المستخدم');
+    } catch (error: any) {
+      if (error && (error.code === 'auth/email-already-in-use' || String(error).includes('email-already-in-use'))) {
+        setAddUserError('البريد الإلكتروني مسجل بالفعل في نظام المصادقة (Firebase Auth)');
+      } else if (error && (error.code === 'auth/weak-password' || String(error).includes('weak-password'))) {
+        setAddUserError('كلمة المرور ضعيفة جداً. يجب أن تكون من 6 أحرف على الأقل.');
+      } else if (error && (error.code === 'auth/operation-not-allowed' || String(error).includes('operation-not-allowed'))) {
+        setAddUserError('خطأ: ميزة الدخول بالبريد الإلكتروني غير مفعلة في مشروع Firebase الخاص بك. يرجى تفعيل "Email/Password" بمستودع المصادقة (Authentication > Sign-in method) في Firebase Console.');
+      } else {
+        setAddUserError('حدث خطأ أثناء إضافة المستخدم: ' + (error.message || error));
+      }
       console.error(error);
     }
   };
@@ -152,6 +168,26 @@ export const Settings: React.FC = () => {
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `appUsers/${firebaseUser.uid}`);
       setPasswordChangeMessage({ type: 'error', text: 'حدث خطأ أثناء تحديث كلمة المرور' });
+    }
+  };
+
+  const handleLinkPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLinkMessage({ type: '', text: '' });
+    if (!linkPassword || linkPassword.length < 6) {
+      setLinkMessage({ type: 'error', text: 'يجب أن تكون كلمة المرور من 6 أحرف على الأقل.' });
+      return;
+    }
+    try {
+      setIsLinking(true);
+      await linkEmailPasswordToGoogle(linkPassword);
+      setLinkMessage({ type: 'success', text: 'تم تعيين كلمة المرور وربط الحساب بنجاح! يمكنك الآن تسجيل الدخول باستخدام البريد الإلكتروني وكلمة المرور أيضاً.' });
+      setLinkPassword('');
+    } catch (error: any) {
+      console.error(error);
+      setLinkMessage({ type: 'error', text: 'حدث خطأ أثناء ربط الحساب: ' + (error.message || error) });
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -390,10 +426,47 @@ export const Settings: React.FC = () => {
             <div className="max-w-md">
               <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-indigo-600" />
-                تغيير كلمة المرور
+                تغيير كلمة المرور الأمان
               </h2>
               
-              {appUser?.isActive ? (
+              {!appUser?.password ? (
+                <form className="space-y-5" onSubmit={handleLinkPasswordSubmit}>
+                  <div className="p-4 bg-indigo-50 border border-indigo-100 text-indigo-800 rounded-xl text-sm leading-relaxed">
+                    <span className="font-semibold block mb-1">💡 تعيين كلمة المرور وتفعيل تسجيل الدخول بالبريد</span>
+                    أنت مسجل الدخول باستخدام حساب Google ولم تقم بتعيين كلمة مرور مسبقاً. قم بتعيين كلمة مرور الآن للربط وتفعيل تسجيل الدخول باستخدام البريد الإلكتروني وكلمة المرور أيضاً.
+                  </div>
+
+                  {linkMessage.text && (
+                    <div className={`p-3 rounded-lg text-sm font-medium ${linkMessage.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                      {linkMessage.text}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">تعيين كلمة المرور الجديدة</label>
+                    <input 
+                      type="password" 
+                      placeholder="كلمة مرور من 6 أحرف على الأقل"
+                      value={linkPassword}
+                      disabled={isLinking}
+                      onChange={(e) => setLinkPassword(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" 
+                      dir="ltr"
+                    />
+                  </div>
+
+                  <div className="pt-4 mt-6 border-t border-slate-100 flex justify-end">
+                    <button 
+                      type="submit" 
+                      disabled={isLinking}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" />
+                      {isLinking ? 'جاري تعيين وربط الحساب...' : 'تعيين كلمة المرور وربط الحساب'}
+                    </button>
+                  </div>
+                </form>
+              ) : appUser?.isActive ? (
                 <form className="space-y-5" onSubmit={handleChangePassword}>
                   {passwordChangeMessage.text && (
                     <div className={`p-3 rounded-lg text-sm font-medium ${passwordChangeMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, loginWithGoogle, logoutGoogle, db, handleFirestoreError, OperationType } from '../firebase';
+import { auth, loginWithGoogle, logoutGoogle, loginWithEmailAndPassword, db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 export interface User {
@@ -22,6 +22,8 @@ interface AuthContextType {
   appUser: AppUser | null;
   loading: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  linkEmailPasswordToGoogle: (password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAppPasswordVerified: boolean;
   verifyAppPassword: (password: string) => boolean;
@@ -144,6 +146,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('login_time', Date.now().toString());
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    await loginWithEmailAndPassword(email, password);
+    localStorage.setItem('login_time', Date.now().toString());
+  };
+
+  const linkEmailPasswordToGoogle = async (password: string) => {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      throw new Error('لا يوجد مستخدم مسجل دخول حالياً');
+    }
+    const email = auth.currentUser.email;
+    const { EmailAuthProvider, linkWithCredential, updatePassword } = await import('firebase/auth');
+    const credential = EmailAuthProvider.credential(email, password);
+    
+    try {
+      await linkWithCredential(auth.currentUser, credential);
+    } catch (error: any) {
+      if (error && (error.code === 'auth/provider-already-linked' || error.code === 'auth/credential-already-in-use' || String(error).includes('already-linked') || String(error).includes('credential-already-in-use'))) {
+        await updatePassword(auth.currentUser, password);
+      } else {
+        throw error;
+      }
+    }
+
+    // Update Firestore doc for appUsers (use currentUser.uid as key)
+    const appUserDocRef = doc(db, 'appUsers', auth.currentUser.uid);
+    const updatedAppUser: AppUser = {
+      email: email,
+      password: password,
+      isActive: true
+    };
+    await setDoc(appUserDocRef, updatedAppUser, { merge: true });
+    setAppUser(updatedAppUser);
+  };
+
   const logout = async () => {
     await logoutGoogle();
     setIsAppPasswordVerified(false);
@@ -159,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, appUser, loading, login, logout, isAppPasswordVerified, verifyAppPassword }}>
+    <AuthContext.Provider value={{ user, firebaseUser, appUser, loading, login, loginWithEmail, linkEmailPasswordToGoogle, logout, isAppPasswordVerified, verifyAppPassword }}>
       {!loading && children}
     </AuthContext.Provider>
   );

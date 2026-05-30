@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { fetchSignInMethodsForEmail } from 'firebase/auth';
 
 export const Login: React.FC = () => {
-  const { login, user } = useAuth();
+  const { login, loginWithEmail, user } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
@@ -35,6 +39,52 @@ export const Login: React.FC = () => {
     }
   };
 
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('يرجى إدخال البريد الإلكتروني وكلمة المرور');
+      return;
+    }
+    const safeEmail = email.trim().toLowerCase();
+    try {
+      setIsLoggingIn(true);
+      setError('');
+
+      // Check if user exists in Auth and has only Google provider
+      let isGoogleOnly = false;
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, safeEmail);
+        if (methods.includes('google.com') && !methods.includes('password')) {
+          isGoogleOnly = true;
+        }
+      } catch (authErr) {
+        console.warn('fetchSignInMethodsForEmail failed:', authErr);
+      }
+
+      if (isGoogleOnly) {
+        setError('هذا الحساب مسجل عبر Google فقط. يرجى تسجيل الدخول باستخدام Google أولاً، ثم الانتقال للإعدادات لتعيين كلمة مرور للحساب لربطه.');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      await loginWithEmail(safeEmail, password);
+    } catch (err: any) {
+      if (err && (err.code === 'auth/operation-not-allowed' || String(err).includes('operation-not-allowed'))) {
+        setError('خطأ: ميزة الدخول بالبريد الإلكتروني غير مفعلة في مشروع Firebase الخاص بك. يرجى الانتقال إلى Firebase Console وتفعيل خيار "Email/Password" من قائمة "Sign-in method" في قسم Authentication.');
+      } else if (err && (err.code === 'auth/invalid-credential' || String(err).includes('invalid-credential') || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found')) {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى بالتأكد من البيانات والمحاولة مجدداً.');
+      } else {
+        setError('فشل تسجيل الدخول. يرجى التحقق من البريد الإلكتروني وكلمة المرور.');
+      }
+      if (err && (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found')) {
+        console.warn('Authentication err processed:', err.code);
+      } else {
+        console.error(err);
+      }
+      setIsLoggingIn(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -52,11 +102,57 @@ export const Login: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100 flex flex-col items-center">
           
-          {error && <div className="mb-4 text-red-500 text-sm">{error}</div>}
+          {error && <div className="mb-4 text-red-500 text-sm font-medium text-center w-full">{error}</div>}
+
+          <form onSubmit={handleEmailSignIn} className="w-full space-y-4 mb-5" dir="rtl">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">البريد الإلكتروني</label>
+              <input 
+                type="email" 
+                required
+                disabled={isLoggingIn}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@calista.com"
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-right transition-all text-sm" 
+                dir="ltr"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">كلمة المرور</label>
+              <input 
+                type="password" 
+                required
+                disabled={isLoggingIn}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-right transition-all text-sm" 
+                dir="ltr"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full flex justify-center items-center py-2.5 px-4 bg-indigo-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none transition-all disabled:opacity-50"
+            >
+              {isLoggingIn ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+            </button>
+          </form>
+
+          <div className="relative w-full flex items-center justify-center my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200"></div>
+            </div>
+            <span className="relative bg-white px-3 text-xs text-slate-400 font-medium">أو</span>
+          </div>
 
           <button
             onClick={handleSignIn}
-            className="w-full flex justify-center items-center gap-3 py-3 px-4 bg-white text-slate-700 border border-slate-300 text-sm font-semibold rounded-lg shadow-sm hover:bg-slate-50 transition-all"
+            disabled={isLoggingIn}
+            className="w-full flex justify-center items-center gap-3 py-3 px-4 bg-white text-slate-700 border border-slate-300 text-sm font-semibold rounded-lg shadow-sm hover:bg-slate-50 transition-all disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
