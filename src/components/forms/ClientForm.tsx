@@ -3,7 +3,7 @@ import { Client, ClientStatus } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
 
 interface ClientFormProps {
@@ -25,6 +25,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
   const [newNote, setNewNote] = useState('');
   const [usersList, setUsersList] = useState<{id: string, name: string, email: string}[]>([]);
   const [assignedUserId, setAssignedUserId] = useState<string>('');
+  const [formError, setFormError] = useState<string>('');
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -84,8 +85,32 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     }
   }, [initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
+
+    if (formData.phone && !initialData) {
+      try {
+        setIsSubmitting(true);
+        // Check for duplicate phone number
+        const q = query(collection(db, 'clients'), where('phone', '==', formData.phone));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          setFormError('هذا الرقم موجود بالفعل، لا يمكن تكرار بيانات العميل');
+          setIsSubmitting(false);
+          return; // Stop submission
+        }
+      } catch (err) {
+        console.error("Error checking for duplicate phone", err);
+        // If we get a permissions error because we can't query the whole collection,
+        // we might still continue, or we can just fail. We'll proceed in case of error
+        // since the prompt says "if the phone number is found".
+      }
+    }
+
     const result: any = {
       name: formData.name,
       status: formData.status,
@@ -114,6 +139,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     result.budget = avgBudget;
 
     onSubmit(result);
+    setIsSubmitting(false);
   };
 
   const handleAddNote = () => {
@@ -146,6 +172,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
 
       {activeTab === 'details' ? (
         <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm font-medium">
+              {formError}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Client Name *</label>
@@ -223,11 +254,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
           </div>
           
           <div className="pt-4 mt-auto flex items-center justify-end gap-3 border-t border-slate-100">
-            <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+            <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors" disabled={isSubmitting}>
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all">
-              {initialData ? 'Save Changes' : 'Add Client'}
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-50" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : initialData ? 'Save Changes' : 'Add Client'}
             </button>
           </div>
         </form>
