@@ -179,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     await logoutGoogle();
     localStorage.removeItem('login_time');
+    sessionStorage.removeItem('clientsPage');
   };
 
   return (

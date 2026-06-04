@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Search, Filter, Phone, MessageCircle, Calendar as CalendarIcon, Bell, CalendarPlus, User, Building2, Globe, Clock, PhoneCall, Trash2, ChevronDown, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -52,15 +52,11 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
   const handleWhatsApp = (e: React.MouseEvent, phone: string) => {
     e.stopPropagation();
     
-    // Clean to digits only
     let cleaned = phone.replace(/\D/g, '');
-    
-    // If it starts with 00, remove it
     if (cleaned.startsWith('00')) {
       cleaned = cleaned.substring(2);
     }
     
-    // If Egyptian 01... (11 digits), prepend 2
     if (cleaned.startsWith('01') && cleaned.length === 11) {
       cleaned = '2' + cleaned;
     }
@@ -291,7 +287,47 @@ export const Clients: React.FC = () => {
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [isUsersOpen, setIsUsersOpen] = useState(false);
   
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentPage, setCurrentStatePage] = useState(1);
+
+  useEffect(() => {
+    const pageFromUrl = searchParams.get('page');
+    const parsedUrlPage = pageFromUrl ? parseInt(pageFromUrl, 10) : NaN;
+    
+    let initialPage = 1;
+    
+    if (!isNaN(parsedUrlPage) && parsedUrlPage > 0) {
+      initialPage = parsedUrlPage;
+    } else {
+      const pageFromStorage = sessionStorage.getItem('clientsPage');
+      const parsedStoragePage = pageFromStorage ? parseInt(pageFromStorage, 10) : NaN;
+      if (!isNaN(parsedStoragePage) && parsedStoragePage > 0) {
+        initialPage = parsedStoragePage;
+      }
+    }
+    
+    // console.log('Pagination initialized to:', initialPage);
+    setCurrentStatePage(initialPage);
+    
+    if (initialPage !== parsedUrlPage) {
+      setSearchParams(prev => {
+        prev.set('page', initialPage.toString());
+        return prev;
+      }, { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setCurrentPage = (newPage: number | ((prev: number) => number)) => {
+    const next = typeof newPage === 'function' ? newPage(currentPage) : newPage;
+    setCurrentStatePage(next);
+    sessionStorage.setItem('clientsPage', next.toString());
+    setSearchParams(params => {
+      params.set('page', next.toString());
+      return params;
+    });
+  };
+
   const ITEMS_PER_PAGE = 20;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -311,10 +347,6 @@ export const Clients: React.FC = () => {
   
   // Extract unique users (agents) for the filter dropdown
   const uniqueUsers = Array.from(new Set(clients.map(c => c.ownerId || c.salesAgent).filter(Boolean)));
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedStatuses, selectedProjects, selectedUsers, followUpDateFrom, followUpDateTo]);
 
   const filteredClients = clients.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -352,7 +384,7 @@ export const Clients: React.FC = () => {
     }
 
     return matchesSearch && matchesStatus && matchesProject && matchesUser && matchesDateRange;
-  }).sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }).sort((a,b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
 
   const totalPages = Math.ceil(filteredClients.length / ITEMS_PER_PAGE);
   const paginatedClients = filteredClients.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);

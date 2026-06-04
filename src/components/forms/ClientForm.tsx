@@ -55,7 +55,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     budgetMax: '',
     followUpDate: '',
     meetingDate: '',
-    status: 'New' as ClientStatus,
+    status: 'My Fresh Lead' as ClientStatus,
     leadSource: '',
     leadScore: 'Cold' as any,
     propertyType: 'Residential',

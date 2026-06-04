@@ -19,7 +19,7 @@ const ALL_STATUSES: ClientStatus[] = [
 ];
 
 const PIPELINE_STAGES: { id: ClientStatus, title: string }[] = [
-  { id: 'My Fresh Lead', title: 'New' },
+  { id: 'My Fresh Lead', title: 'Fresh lead' },
   { id: 'Call Attempt', title: 'Contacted' },
   { id: 'Interested', title: 'Interested' },
   { id: 'Follow Up', title: 'Negotiation' },
@@ -107,7 +107,7 @@ export const ClientDetails: React.FC = () => {
       feedbackText: fuFeedback,
       status: fuStatus,
       nextAction: fuNextAction,
-      nextFollowUpDate: fuNextDate
+      nextFollowUpDate: (fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate
     });
     setIsFollowUpModalOpen(false);
     setFuFeedback('');
@@ -217,13 +217,24 @@ export const ClientDetails: React.FC = () => {
 
   const currentStageIndex = PIPELINE_STAGES.findIndex(s => s.id === client.status);
 
+  const getWhatsAppLink = (phone: string) => {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('00')) {
+      cleaned = cleaned.substring(2);
+    }
+    if (cleaned.startsWith('01') && cleaned.length === 11) {
+      cleaned = '2' + cleaned;
+    }
+    return `https://wa.me/${cleaned}`;
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate('/clients')}
+            onClick={() => navigate(-1)}
             className="p-2 hover:bg-slate-200 bg-slate-100 text-slate-600 rounded-full transition-colors shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -245,7 +256,7 @@ export const ClientDetails: React.FC = () => {
           <a href={`tel:${client.phone}`} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="Call Client">
             <Phone className="w-4 h-4" />
           </a>
-          <a href={`https://wa.me/${client.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" title="Send WhatsApp">
+          <a href={getWhatsAppLink(client.phone)} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" title="Send WhatsApp">
              <MessageCircle className="w-4 h-4" />
           </a>
           <button onClick={openFollowUpModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
@@ -591,9 +602,10 @@ export const ClientDetails: React.FC = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
               <input
                 type="date"
-                value={fuNextDate}
+                value={(fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate}
                 onChange={(e) => setFuNextDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
+                disabled={fuStatus === 'Not Interested' || fuStatus === 'Low Budget'}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
               />
             </div>
           </div>
