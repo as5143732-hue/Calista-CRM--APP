@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, createAuthUserWithoutSignout } from '../firebase';
 import { Modal } from '../components/ui/Modal';
 
@@ -44,12 +44,12 @@ export const Settings: React.FC = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState('user');
+  const [newUserRole, setNewUserRole] = useState('sales');
   const [newUserActive, setNewUserActive] = useState(true);
   const [addUserError, setAddUserError] = useState('');
 
   useEffect(() => {
-    if (activeTab === 'users' && user?.role === 'admin') {
+    if (activeTab === 'users' && (user?.role === 'super_admin' || user?.role === 'manager')) {
       fetchAppUsers();
     }
   }, [activeTab, user]);
@@ -76,6 +76,34 @@ export const Settings: React.FC = () => {
       setAppUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: !currentStatus } : u));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `appUsers/${userId}`);
+    }
+  };
+
+  const runMigration = async () => {
+    if (!window.confirm("هل أنت متأكد من تشغيل تحديث قاعدة البيانات للعملاء؟")) return;
+    try {
+      const clientsRef = collection(db, 'clients');
+      const snapshot = await getDocs(clientsRef);
+      const batch = writeBatch(db);
+      let count = 0;
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (!data.createdAt) {
+          batch.update(docSnap.ref, { createdAt: new Date().toISOString() });
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        alert(`تم التحديث بنجاح! تم إضافة createdAt لـ ${count} عميل.`);
+      } else {
+        alert("جميع العملاء يحتوون على createdAt مسبقًا. لا يوجد تحديثات.");
+      }
+    } catch (error) {
+      console.error("Migration error:", error);
+      alert("حدث خطأ أثناء التحديث.");
     }
   };
 
@@ -137,7 +165,8 @@ export const Settings: React.FC = () => {
       const newAppUserData = {
         email: safeEmail,
         password: newUserPassword,
-        isActive: newUserActive
+        isActive: newUserActive,
+        role: newUserRole
       };
       
       await setDoc(appUserRef, newAppUserData);
@@ -146,7 +175,7 @@ export const Settings: React.FC = () => {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserName('');
-      setNewUserRole('user');
+      setNewUserRole('sales');
       setNewUserActive(true);
     } catch (error: any) {
       if (error && (error.code === 'auth/email-already-in-use' || String(error).includes('email-already-in-use'))) {
@@ -243,7 +272,7 @@ export const Settings: React.FC = () => {
             <User className="w-4 h-4 shrink-0" /> الملف الشخصي
           </button>
           
-          {user?.role === 'admin' && (
+          {(user?.role === 'super_admin' || user?.role === 'manager') && (
             <button 
               onClick={() => setActiveTab('users')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
@@ -312,20 +341,32 @@ export const Settings: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'users' && user?.role === 'admin' && (
+          {activeTab === 'users' && (user?.role === 'super_admin' || user?.role === 'manager') && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                   <Users className="w-5 h-5 text-indigo-600" />
                   إدارة الوصول للمستخدمين
                 </h2>
-                <button
-                  onClick={() => setIsAddUserModalOpen(true)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  إضافة مستخدم
-                </button>
+                <div className="flex items-center gap-2">
+                  {user?.role === 'super_admin' && (
+                    <>
+                      <button
+                        onClick={runMigration}
+                        className="px-4 py-2 bg-amber-500 text-white rounded-lg flex items-center gap-2 font-medium text-sm hover:bg-amber-600 transition-colors shadow-sm"
+                      >
+                        تحديث العملاء (Migration)
+                      </button>
+                      <button
+                        onClick={() => setIsAddUserModalOpen(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        إضافة مستخدم
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {loadingUsers ? (
@@ -361,7 +402,8 @@ export const Settings: React.FC = () => {
                           <td className="px-4 py-4">
                             <button
                               onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${appUser.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                              disabled={user?.role !== 'super_admin'}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${appUser.isActive ? 'bg-emerald-500' : 'bg-slate-300'} ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${appUser.isActive ? 'translate-x-1' : 'translate-x-6'}`} />
                             </button>
@@ -407,19 +449,22 @@ export const Settings: React.FC = () => {
                                       setEditingUserId(appUser.id);
                                       setEditPassword(appUser.password || '');
                                     }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors text-xs font-medium"
+                                    disabled={user?.role !== 'super_admin'}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors text-xs font-medium ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   >
                                     <Lock className="w-3.5 h-3.5" /> تعيين
                                   </button>
                                 </div>
                               )}
-                              <button
-                                onClick={() => handleDeleteUser(appUser.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                title="حذف المستخدم"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {user?.role === 'super_admin' && (
+                                <button
+                                  onClick={() => handleDeleteUser(appUser.id)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="حذف المستخدم"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -580,8 +625,9 @@ export const Settings: React.FC = () => {
               value={newUserRole}
               onChange={(e) => setNewUserRole(e.target.value)}
             >
-              <option value="user">مستخدم (User)</option>
-              <option value="admin">مسؤول (Admin)</option>
+              <option value="super_admin">مدير النظام (Super Admin)</option>
+              <option value="manager">مدير (Manager)</option>
+              <option value="sales">مبيعات (Sales)</option>
             </select>
           </div>
 

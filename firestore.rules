@@ -14,13 +14,25 @@ service cloud.firestore {
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     function isSignedIn() { return request.auth != null; }
-    function isAdmin() { return isSignedIn() && get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+    // User roles
+    function getUserData() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
+    }
+    function isSuperAdmin() { 
+      let data = getUserData();
+      return isSignedIn() && data != null && data.role in ['admin', 'super_admin']; 
+    }
+    function isManager() { 
+      let data = getUserData();
+      return isSignedIn() && data != null && data.role == 'manager'; 
+    }
+    function isAdmin() { return isSuperAdmin() || isManager(); }
 
     // User Validation
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'role', 'createdAt'])
         && data.email is string && data.email.size() <= 200
-        && data.role in ['admin', 'user']
+        && data.role in ['admin', 'super_admin', 'manager', 'sales', 'user']
         && data.createdAt is string && data.createdAt.size() <= 100;
     }
 
@@ -78,13 +90,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() 
         && isValidId(userId) 
-        && (request.auth.uid == userId || isAdmin())
+        && (request.auth.uid == userId || isSuperAdmin())
         && isValidUser(incoming());
       allow update: if isSignedIn() 
         && isValidId(userId)
-        && (request.auth.uid == userId || isAdmin())
+        && (request.auth.uid == userId || isSuperAdmin())
         && isValidUser(incoming());
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin();
     }
 
     match /appUsers/{userId} {
@@ -92,19 +104,19 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isSignedIn() 
         && userId.size() <= 128 
-        && (request.auth.uid == userId || isAdmin())
+        && (request.auth.uid == userId || isSuperAdmin())
         && isValidAppUser(incoming());
-      allow update: if isAdmin() || (
+      allow update: if isSuperAdmin() || (
         isSignedIn() && 
         request.auth.uid == userId && 
         incoming().diff(existing()).affectedKeys().hasOnly(['password', 'isActive', 'email'])
       );
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == userId);
+      allow delete: if isSuperAdmin() || (isSignedIn() && request.auth.token.email == userId);
     }
 
     match /clients/{clientId} {
-      allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (isAdmin() || existing().ownerId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
       
       allow create: if isSignedIn() 
         && isValidId(clientId)
@@ -120,16 +132,16 @@ service cloud.firestore {
         
       allow delete: if isSignedIn() 
         && isValidId(clientId)
-        && (existing().ownerId == request.auth.uid || isAdmin());
+        && (existing().ownerId == request.auth.uid || isSuperAdmin());
         
       match /activities/{activityId} {
-        allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
-        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow read: if isSignedIn() && (isAdmin() || existing().ownerId == request.auth.uid);
+        allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
         
         allow create: if isSignedIn()
           && isValidId(activityId)
           && isValidActivity(incoming(), clientId)
-          && (get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid || isAdmin());
+          && (get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid || isAdmin());
         
         allow update: if isSignedIn()
           && isValidId(activityId)
@@ -140,17 +152,17 @@ service cloud.firestore {
           
         allow delete: if isSignedIn()
           && isValidId(activityId)
-          && (existing().ownerId == request.auth.uid || isAdmin());
+          && (existing().ownerId == request.auth.uid || isSuperAdmin());
       }
       
       match /notes/{noteId} {
-        allow read: if isSignedIn() && (existing().ownerId == request.auth.uid || isAdmin());
-        allow list: if isSignedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+        allow read: if isSignedIn() && (isAdmin() || existing().ownerId == request.auth.uid);
+        allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
         
         allow create: if isSignedIn()
           && isValidId(noteId)
           && isValidNote(incoming(), clientId)
-          && (get(/databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents/clients/$(clientId)).data.ownerId == request.auth.uid || isAdmin());
+          && (get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid || isAdmin());
           
         allow update: if isSignedIn()
           && isValidId(noteId)
@@ -161,7 +173,7 @@ service cloud.firestore {
           
         allow delete: if isSignedIn()
           && isValidId(noteId)
-          && (existing().ownerId == request.auth.uid || isAdmin());
+          && (existing().ownerId == request.auth.uid || isSuperAdmin());
       }
     }
   }

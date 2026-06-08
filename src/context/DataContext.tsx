@@ -99,7 +99,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let q;
-    if (user?.role === 'admin') {
+    if (user?.role === 'super_admin' || user?.role === 'manager') {
       q = query(collection(db, 'clients'));
     } else {
       q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));

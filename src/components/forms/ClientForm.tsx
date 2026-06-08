@@ -28,7 +28,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
   const [formError, setFormError] = useState<string>('');
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'super_admin' || user?.role === 'manager') {
       const fetchUsers = async () => {
         try {
           const snapshot = await getDocs(collection(db, 'users'));
@@ -118,7 +118,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       leadScore: formData.leadScore,
       propertyType: formData.propertyType,
     };
-    if (user?.role === 'admin' && assignedUserId) {
+    if ((user?.role === 'super_admin' || user?.role === 'manager') && assignedUserId) {
        result.ownerId = assignedUserId;
        const assignedUser = usersList.find(u => u.id === assignedUserId);
        if (assignedUser) {
@@ -189,7 +189,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
               </select>
             </div>
             
-            {user?.role === 'admin' && (
+            {(user?.role === 'super_admin' || user?.role === 'manager') && (
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Assigned To (User)</label>
                 <select className="w-full px-3 py-2 border border-slate-300 bg-slate-50 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={assignedUserId} onChange={e => setAssignedUserId(e.target.value)}>

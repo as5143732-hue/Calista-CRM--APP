@@ -98,7 +98,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
             {/* Agent */}
             <div className="bg-[#f27878] text-white rounded-full flex items-center justify-center px-4 py-2 font-bold text-[13px] relative">
                 <span className="truncate pr-4">{usersMap[client.ownerId!] || client.salesAgent?.split(' ')[0] || 'Unknown'}</span>
-                {user?.role === 'admin' && (
+                {user?.role === 'super_admin' && (
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
@@ -184,7 +184,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                 </div>
                 <div className="bg-[#f27878] text-white rounded-full flex items-center justify-center px-4 py-2 font-bold text-xs relative shrink-0">
                    <span className="truncate pr-4">{usersMap[client.ownerId!] || client.salesAgent?.split(' ')[0] || 'Unknown'}</span>
-                   {user?.role === 'admin' && (
+                   {user?.role === 'super_admin' && (
                         <button 
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -541,8 +541,8 @@ export const Clients: React.FC = () => {
                 )}
               </div>
 
-              {/* Users Dropdown (Admin only) */}
-              {user?.role === 'admin' && (
+              {/* Users Dropdown (Admin/Manager only) */}
+              {(user?.role === 'super_admin' || user?.role === 'manager') && (
                 <div className="relative shrink-0 flex-1 sm:flex-none">
                   <button 
                     onClick={() => setIsUsersOpen(!isUsersOpen)}

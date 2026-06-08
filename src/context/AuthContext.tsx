@@ -14,6 +14,7 @@ export interface AppUser {
   email: string;
   password?: string;
   isActive: boolean;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFirebaseUser(u);
       
       if (u) {
-        let currentRole = 'user';
+        let currentRole = 'sales';
         let currentName = u.displayName || u.email?.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || 'User';
         
         try {
@@ -73,13 +74,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists()) {
-            currentRole = userDoc.data().role;
+            let roleFromDoc = userDoc.data().role;
+            if (roleFromDoc === 'admin') roleFromDoc = 'super_admin';
+            if (roleFromDoc === 'user') roleFromDoc = 'sales';
+            currentRole = roleFromDoc;
             if (userDoc.data().name) {
               currentName = userDoc.data().name;
             }
           } else {
             // New user, create document
-            const determinedRole = u.email === 'as5143732@gmail.com' ? 'admin' : 'user';
+            const determinedRole = u.email === 'as5143732@gmail.com' ? 'super_admin' : 'sales';
             currentRole = determinedRole;
             await setDoc(userDocRef, {
               email: u.email,
@@ -94,7 +98,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const appUserDoc = await getDoc(appUserDocRef);
 
           if (appUserDoc.exists()) {
-            setAppUser(appUserDoc.data() as AppUser);
+            const data = appUserDoc.data() as AppUser;
+            setAppUser(data);
+            if (data.role && (!userDoc.exists() || !userDoc.data().role)) {
+               let r = data.role;
+               if (r === 'admin') r = 'super_admin';
+               if (r === 'user') r = 'sales';
+               currentRole = r;
+            }
           } else {
             let manualData = null;
             if (u.email) {

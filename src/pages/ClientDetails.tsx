@@ -59,7 +59,7 @@ export const ClientDetails: React.FC = () => {
     
     const activitiesRef = collection(db, `clients/${id}/activities`);
     let q;
-    if (user?.role === 'admin') {
+    if (user?.role === 'super_admin' || user?.role === 'manager') {
       q = query(activitiesRef);
     } else {
       q = query(activitiesRef, where('ownerId', '==', firebaseUser.uid));
@@ -268,7 +268,7 @@ export const ClientDetails: React.FC = () => {
              Edit Profile
           </button>
           
-          {user?.role === 'admin' && (
+          {user?.role === 'super_admin' && (
             <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
                حذف العميل
             </button>
