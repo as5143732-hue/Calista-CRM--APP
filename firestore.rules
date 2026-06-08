@@ -31,6 +31,11 @@ service cloud.firestore {
     }
     function isAdmin() { return isSuperAdmin() || isManager(); }
 
+    function isSales() {
+      let data = getUserData();
+      return isSignedIn() && data != null && data.role == 'sales';
+    }
+
     // User Validation
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'role', 'createdAt'])
@@ -123,7 +128,8 @@ service cloud.firestore {
       
       allow create: if isSignedIn() 
         && isValidId(clientId)
-        && isValidClient(incoming());
+        && isValidClient(incoming())
+        && !isSales();
         // For atomic activity, we could require existsAfter, but it's okay for now.
         
       allow update: if isSignedIn() 

@@ -414,12 +414,14 @@ export const Clients: React.FC = () => {
             <p className="text-slate-500 text-sm mt-1">Manage all your contacts list.</p>
           </div>
           
-          <button 
-            onClick={openAdd}
-            className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="w-5 h-5" /> Add Client
-          </button>
+          {user?.role !== 'sales' && (
+            <button 
+              onClick={openAdd}
+              className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus className="w-5 h-5" /> Add Client
+            </button>
+          )}
         </div>
 
         {/* Filters Section */}
