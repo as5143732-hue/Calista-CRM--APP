@@ -20,7 +20,7 @@ const statusOptions: ClientStatus[] = [
 
 export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, onCancel }) => {
   const { addNote } = useData();
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'notes'>('details');
   const [newNote, setNewNote] = useState('');
   const [usersList, setUsersList] = useState<{id: string, name: string, email: string}[]>([]);
@@ -95,8 +95,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       try {
         setIsSubmitting(true);
         // Check for duplicate phone number
-        const q = query(collection(db, 'clients'), where('phone', '==', formData.phone));
-        const snapshot = await getDocs(q);
+        let duplicateQuery;
+        if (user?.role === 'super_admin' || user?.role === 'manager') {
+           duplicateQuery = query(collection(db, 'clients'), where('phone', '==', formData.phone));
+        } else {
+           duplicateQuery = query(collection(db, 'clients'), where('phone', '==', formData.phone), where('ownerId', '==', user?.uid || firebaseUser?.uid));
+        }
+        const snapshot = await getDocs(duplicateQuery);
         
         if (!snapshot.empty) {
           setFormError('هذا الرقم موجود بالفعل، لا يمكن تكرار بيانات العميل');
@@ -201,7 +206,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
-              <input type="tel" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              {user?.role === 'sales' ? (
+                 <div className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed overflow-hidden">
+                    {formData.phone || '—'}
+                 </div>
+              ) : (
+                 <input type="tel" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
@@ -237,11 +248,23 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Budget Min ($)</label>
-              <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budgetMin} onChange={e => setFormData({...formData, budgetMin: e.target.value})} />
+              {user?.role === 'sales' ? (
+                 <div className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed">
+                   {formData.budgetMin || '—'}
+                 </div>
+              ) : (
+                 <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budgetMin} onChange={e => setFormData({...formData, budgetMin: e.target.value})} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Budget Max ($)</label>
-              <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budgetMax} onChange={e => setFormData({...formData, budgetMax: e.target.value})} />
+              {user?.role === 'sales' ? (
+                 <div className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed">
+                   {formData.budgetMax || '—'}
+                 </div>
+              ) : (
+                 <input type="number" min="0" step="1000" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.budgetMax} onChange={e => setFormData({...formData, budgetMax: e.target.value})} />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Follow Up Date</label>

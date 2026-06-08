@@ -100,10 +100,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (appUserDoc.exists()) {
             const data = appUserDoc.data() as AppUser;
             setAppUser(data);
-            if (data.role && (!userDoc.exists() || !userDoc.data().role)) {
+            if (data.role && (!userDoc.exists() || !userDoc.data().role || userDoc.data().role !== data.role)) {
                let r = data.role;
                if (r === 'admin') r = 'super_admin';
                if (r === 'user') r = 'sales';
+               
+               // Force resync to avoid local vs firestore rules mismatch
+               if (userDoc.exists()) {
+                 try {
+                   await setDoc(userDocRef, { role: r }, { merge: true });
+                 } catch(e) { console.error("Failed to resync user role", e); }
+               }
                currentRole = r;
             }
           } else {
@@ -127,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
         } catch (error) {
+          console.error("AuthContext fetch error:", error);
           try {
             handleFirestoreError(error, OperationType.GET, `users_or_appUsers_fetch`);
           } catch(e) { console.error(e); }

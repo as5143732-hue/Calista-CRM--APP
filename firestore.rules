@@ -1,7 +1,7 @@
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/ai-studio-a90b58db-102a-4aa9-9ea9-0be6c4d4d65c/documents {
+  match /databases/{database}/documents {
     // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
@@ -20,7 +20,10 @@ service cloud.firestore {
     }
     function isSuperAdmin() { 
       let data = getUserData();
-      return isSignedIn() && data != null && data.role in ['admin', 'super_admin']; 
+      return isSignedIn() && (
+        (data != null && data.role in ['admin', 'super_admin']) || 
+        request.auth.token.email == 'as5143732@gmail.com'
+      ); 
     }
     function isManager() { 
       let data = getUserData();
@@ -100,7 +103,7 @@ service cloud.firestore {
     }
 
     match /appUsers/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == userId || isAdmin());
+      allow get: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == userId || isAdmin());
       allow list: if isAdmin();
       allow create: if isSignedIn() 
         && userId.size() <= 128 
@@ -115,7 +118,7 @@ service cloud.firestore {
     }
 
     match /clients/{clientId} {
-      allow read: if isSignedIn() && (isAdmin() || existing().ownerId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
       allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
       
       allow create: if isSignedIn() 
@@ -135,8 +138,8 @@ service cloud.firestore {
         && (existing().ownerId == request.auth.uid || isSuperAdmin());
         
       match /activities/{activityId} {
-        allow read: if isSignedIn() && (isAdmin() || existing().ownerId == request.auth.uid);
-        allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+        allow get: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid);
+        allow list: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid);
         
         allow create: if isSignedIn()
           && isValidId(activityId)
@@ -156,8 +159,8 @@ service cloud.firestore {
       }
       
       match /notes/{noteId} {
-        allow read: if isSignedIn() && (isAdmin() || existing().ownerId == request.auth.uid);
-        allow list: if isSignedIn() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+        allow get: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid);
+        allow list: if isSignedIn() && (isAdmin() || get(/databases/$(database)/documents/clients/$(clientId)).data.ownerId == request.auth.uid);
         
         allow create: if isSignedIn()
           && isValidId(noteId)
