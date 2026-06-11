@@ -66,7 +66,9 @@ service cloud.firestore {
         && (data.get('budget', 0) == null || data.get('budget', 0) is number || data.get('budget', 0) is string)
         && (data.get('followUpDate', '') == null || data.get('followUpDate', '') is string)
         && (data.get('meetingDate', '') == null || data.get('meetingDate', '') is string)
-        && (data.get('salesAgent', '') == null || data.get('salesAgent', '') is string);
+        && (data.get('salesAgent', '') == null || data.get('salesAgent', '') is string)
+        && (data.get('createdBy', '') == null || data.get('createdBy', '') is string)
+        && (data.get('updatedBy', '') == null || data.get('updatedBy', '') is string);
     }
     
     // Activity Validation

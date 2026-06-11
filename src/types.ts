@@ -74,6 +74,8 @@ export interface Client {
   salesAgent: string;
   status: ClientStatus;
   ownerId?: string;
+  createdBy?: string;
+  updatedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

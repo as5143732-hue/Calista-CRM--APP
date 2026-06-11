@@ -58,12 +58,7 @@ export const ClientDetails: React.FC = () => {
     if (!id || !firebaseUser) return;
     
     const activitiesRef = collection(db, `clients/${id}/activities`);
-    let q;
-    if (user?.role === 'super_admin' || user?.role === 'manager') {
-      q = query(activitiesRef);
-    } else {
-      q = query(activitiesRef, where('ownerId', '==', firebaseUser.uid));
-    }
+    const q = query(activitiesRef);
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loaded: Activity[] = [];
@@ -259,14 +254,16 @@ export const ClientDetails: React.FC = () => {
           <a href={getWhatsAppLink(client.phone)} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" title="Send WhatsApp">
              <MessageCircle className="w-4 h-4" />
           </a>
-          <button onClick={openFollowUpModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
+          <button onClick={openFollowUpModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm ml-2 tracking-wide font-bold">
              <CalendarPlus className="w-4 h-4" />
-             Add Follow Up
+             ACTIONS
           </button>
-          <button onClick={() => setIsEditModalOpen(true)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
-             <Edit2 className="w-4 h-4" />
-             Edit Profile
-          </button>
+          {user?.role !== 'sales' && (
+            <button onClick={() => setIsEditModalOpen(true)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
+               <Edit2 className="w-4 h-4" />
+               Edit Profile
+            </button>
+          )}
           
           {user?.role === 'super_admin' && (
             <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
@@ -440,11 +437,13 @@ export const ClientDetails: React.FC = () => {
                           </div>
                         )}
 
-                        <div className="mt-4 pt-3 border-t border-slate-50 flex items-center gap-2">
-                           <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                             {(usersMap[activity.ownerId!] || activity.agentName)?.charAt(0) || 'U'}
+                        <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
+                           <div className="flex items-center gap-2">
+                             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[11px] font-bold text-blue-700 shadow-sm border border-blue-200">
+                               {(usersMap[activity.ownerId!] || activity.agentName)?.charAt(0)?.toUpperCase() || 'U'}
+                             </div>
+                             <span className="text-sm font-bold text-slate-700 font-mono">By: {usersMap[activity.ownerId!] || activity.agentName}</span>
                            </div>
-                           <span className="text-xs font-medium text-slate-500">{usersMap[activity.ownerId!] || activity.agentName}</span>
                         </div>
                       </div>
                     </div>

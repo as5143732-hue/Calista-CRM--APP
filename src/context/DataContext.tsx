@@ -135,6 +135,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         projectName: normalizeProjectName(clientData.projectName),
         salesAgent: finalSalesAgent,
         ownerId: finalOwnerId,
+        createdBy: currentAgent,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -148,7 +149,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clientId: newClientRef.id,
         ownerId: finalOwnerId,
         type: 'client_created',
-        agentName: finalSalesAgent,
+        agentName: currentAgent,
+        content: `Client Created by ${currentAgent}`,
         createdAt: new Date().toISOString()
       });
     } catch (error) {
@@ -161,28 +163,42 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const client = clients.find(c => c.id === id);
     if (!client) return;
 
+    let finalUpdates = { ...updates };
+    if (updates.ownerId && client.ownerId && updates.ownerId !== client.ownerId) {
+      finalUpdates.status = 'My Fresh Lead';
+      finalUpdates.updatedBy = currentAgent;
+    }
+
     // Optimistic update
-    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
+    setClients(prev => prev.map(c => c.id === id ? { ...c, ...finalUpdates, updatedAt: new Date().toISOString() } : c));
 
     try {
       const clientRef = doc(db, 'clients', id);
+
       const updateData = { 
-        ...updates, 
-        ...(updates.projectName ? { projectName: normalizeProjectName(updates.projectName) } : {}),
+        ...finalUpdates, 
+        ...(finalUpdates.projectName ? { projectName: normalizeProjectName(finalUpdates.projectName) } : {}),
         updatedAt: new Date().toISOString() 
       };
       await updateDoc(clientRef, updateData);
 
-      const hasStatusChange = updates.status && updates.status !== client.status;
-      if (hasStatusChange) {
+      let updateContent = undefined;
+      if (updates.ownerId && client.ownerId && updates.ownerId !== client.ownerId) {
+        const newOwnerName = usersMap[updates.ownerId] || 'another agent';
+        updateContent = `Client Transferred to ${newOwnerName} by ${currentAgent}`;
+      }
+
+      const hasStatusChange = finalUpdates.status && finalUpdates.status !== client.status;
+      if (hasStatusChange || updateContent) {
         const activityRef = doc(collection(db, `clients/${id}/activities`));
         await setDoc(activityRef, {
           clientId: id,
           ownerId: firebaseUser.uid,
           type: 'status_change',
           previousStatus: client.status,
-          newStatus: updates.status,
+          newStatus: finalUpdates.status || client.status,
           agentName: currentAgent,
+          ...(updateContent ? { content: updateContent } : {}),
           createdAt: new Date().toISOString()
         });
       }
@@ -210,16 +226,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date().toISOString()
         });
       }
-      
-      // General update
-      const activityRef = doc(collection(db, `clients/${id}/activities`));
-      await setDoc(activityRef, {
-        clientId: id,
-        ownerId: firebaseUser.uid,
-        type: 'client_updated',
-        agentName: currentAgent,
-        createdAt: new Date().toISOString()
-      });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `clients/${id}`);
     }
