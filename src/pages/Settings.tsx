@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 
 interface AppUserWithId extends AppUser {
   id: string;
+  role?: string;
 }
 
 export const Settings: React.FC = () => {
@@ -78,8 +79,17 @@ export const Settings: React.FC = () => {
         }
       }
       const snapshot = await getDocs(reqQuery);
+      
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const rolesMap: Record<string, string> = {};
+      usersSnapshot.forEach(d => {
+        rolesMap[d.id] = d.data().role;
+      });
+
       const fetched: AppUserWithId[] = [];
-      snapshot.forEach((d) => fetched.push({ id: d.id, ...d.data() } as AppUserWithId));
+      snapshot.forEach((d) => {
+        fetched.push({ id: d.id, ...d.data(), role: rolesMap[d.id] } as AppUserWithId);
+      });
       setAppUsers(fetched);
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, 'appUsers');
@@ -402,112 +412,228 @@ export const Settings: React.FC = () => {
               {loadingUsers ? (
                 <div className="text-center py-10 text-slate-500">جاري التحميل...</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-right text-slate-600">
-                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
-                        <th className="px-4 py-3 font-medium">نوع الحساب</th>
-                        <th className="px-4 py-3 font-medium">حالة التفعيل</th>
-                        <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {appUsers.map((appUser) => (
-                        <tr key={appUser.id} className="bg-white hover:bg-slate-50/50 transition-colors">
-                          <td className="px-4 py-4 font-medium text-slate-800" dir="ltr">
-                            {appUser.email}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-slate-600">
-                            {appUser.id.includes('@') ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium border border-amber-100">
-                                مضاف يدويًا
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
-                                مسجل دخول
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <button
-                              onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
-                              disabled={user?.role !== 'super_admin'}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${appUser.isActive ? 'bg-emerald-500' : 'bg-slate-300'} ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${appUser.isActive ? 'translate-x-1' : 'translate-x-6'}`} />
-                            </button>
-                            <span className={`mr-2 text-xs font-bold ${appUser.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
-                              {appUser.isActive ? 'مفعل' : 'معطل'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center justify-end gap-4">
-                              {editingUserId === appUser.id ? (
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    placeholder="كلمة المرور الجديدة"
-                                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-40 outline-none focus:border-indigo-500"
-                                    value={editPassword}
-                                    onChange={(e) => setEditPassword(e.target.value)}
-                                    autoFocus
-                                    dir="ltr"
-                                  />
-                                  <button 
-                                    onClick={() => handleSavePassword(appUser.id)}
-                                    className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
-                                    title="حفظ"
-                                  >
-                                    <Check className="w-4 h-4" />
-                                  </button>
-                                  <button 
-                                    onClick={() => setEditingUserId(null)}
-                                    className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
-                                    title="إلغاء"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-3">
-                                  <span className="font-mono text-slate-400">
-                                    {appUser.password ? '••••••••' : 'لم يتم التعيين'}
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-md font-semibold text-slate-800 mb-4 border-b pb-2">المديرين والمسؤولين (Managers & Admins)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-right text-slate-600">
+                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
+                            <th className="px-4 py-3 font-medium">نوع الحساب</th>
+                            <th className="px-4 py-3 font-medium">حالة التفعيل</th>
+                            <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {appUsers.filter(u => u.role !== 'sales').map((appUser) => (
+                            <tr key={appUser.id} className="bg-white hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-4 font-medium text-slate-800" dir="ltr">
+                                {appUser.email}
+                              </td>
+                              <td className="px-4 py-4 text-sm text-slate-600">
+                                {appUser.id.includes('@') ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium border border-amber-100">
+                                    مضاف يدويًا
                                   </span>
-                                  <button
-                                    onClick={() => {
-                                      setEditingUserId(appUser.id);
-                                      setEditPassword(appUser.password || '');
-                                    }}
-                                    disabled={user?.role !== 'super_admin'}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors text-xs font-medium ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  >
-                                    <Lock className="w-3.5 h-3.5" /> تعيين
-                                  </button>
-                                </div>
-                              )}
-                              {user?.role === 'super_admin' && (
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                                    مسجل دخول
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-4">
                                 <button
-                                  onClick={() => handleDeleteUser(appUser.id)}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="حذف المستخدم"
+                                  onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
+                                  disabled={user?.role !== 'super_admin'}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${appUser.isActive ? 'bg-emerald-500' : 'bg-slate-300'} ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${appUser.isActive ? 'translate-x-1' : 'translate-x-6'}`} />
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {appUsers.length === 0 && (
-                        <tr>
-                          <td colSpan={3} className="px-4 py-8 text-center text-slate-500">
-                            لا يوجد مستخدمين بعد.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                                <span className={`mr-2 text-xs font-bold ${appUser.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                  {appUser.isActive ? 'مفعل' : 'معطل'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center justify-end gap-4">
+                                  {editingUserId === appUser.id ? (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder="كلمة المرور الجديدة"
+                                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-40 outline-none focus:border-indigo-500"
+                                        value={editPassword}
+                                        onChange={(e) => setEditPassword(e.target.value)}
+                                        autoFocus
+                                        dir="ltr"
+                                      />
+                                      <button 
+                                        onClick={() => handleSavePassword(appUser.id)}
+                                        className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
+                                        title="حفظ"
+                                      >
+                                        <Check className="w-4 h-4" />
+                                      </button>
+                                      <button 
+                                        onClick={() => setEditingUserId(null)}
+                                        className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                                        title="إلغاء"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-mono text-slate-400">
+                                        {appUser.password ? '••••••••' : 'لم يتم التعيين'}
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          setEditingUserId(appUser.id);
+                                          setEditPassword(appUser.password || '');
+                                        }}
+                                        disabled={user?.role !== 'super_admin'}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors text-xs font-medium ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      >
+                                        <Lock className="w-3.5 h-3.5" /> تعيين
+                                      </button>
+                                    </div>
+                                  )}
+                                  {user?.role === 'super_admin' && (
+                                    <button
+                                      onClick={() => handleDeleteUser(appUser.id)}
+                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      title="حذف المستخدم"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {appUsers.filter(u => u.role !== 'sales').length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                                لا يوجد مديرين بعد.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-md font-semibold text-slate-800 mb-4 border-b pb-2">فريق المبيعات (Sales)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-right text-slate-600">
+                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
+                            <th className="px-4 py-3 font-medium">نوع الحساب</th>
+                            <th className="px-4 py-3 font-medium">حالة التفعيل</th>
+                            <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {appUsers.filter(u => u.role === 'sales').map((appUser) => (
+                            <tr key={appUser.id} className="bg-white hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-4 font-medium text-slate-800" dir="ltr">
+                                {appUser.email}
+                              </td>
+                              <td className="px-4 py-4 text-sm text-slate-600">
+                                {appUser.id.includes('@') ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium border border-amber-100">
+                                    مضاف يدويًا
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                                    مسجل دخول
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-4">
+                                <button
+                                  onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
+                                  disabled={user?.role !== 'super_admin'}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${appUser.isActive ? 'bg-emerald-500' : 'bg-slate-300'} ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${appUser.isActive ? 'translate-x-1' : 'translate-x-6'}`} />
+                                </button>
+                                <span className={`mr-2 text-xs font-bold ${appUser.isActive ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                  {appUser.isActive ? 'مفعل' : 'معطل'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center justify-end gap-4">
+                                  {editingUserId === appUser.id ? (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder="كلمة المرور الجديدة"
+                                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-40 outline-none focus:border-indigo-500"
+                                        value={editPassword}
+                                        onChange={(e) => setEditPassword(e.target.value)}
+                                        autoFocus
+                                        dir="ltr"
+                                      />
+                                      <button 
+                                        onClick={() => handleSavePassword(appUser.id)}
+                                        className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
+                                        title="حفظ"
+                                      >
+                                        <Check className="w-4 h-4" />
+                                      </button>
+                                      <button 
+                                        onClick={() => setEditingUserId(null)}
+                                        className="p-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                                        title="إلغاء"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-mono text-slate-400">
+                                        {appUser.password ? '••••••••' : 'لم يتم التعيين'}
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          setEditingUserId(appUser.id);
+                                          setEditPassword(appUser.password || '');
+                                        }}
+                                        disabled={user?.role !== 'super_admin'}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition-colors text-xs font-medium ${user?.role !== 'super_admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      >
+                                        <Lock className="w-3.5 h-3.5" /> تعيين
+                                      </button>
+                                    </div>
+                                  )}
+                                  {user?.role === 'super_admin' && (
+                                    <button
+                                      onClick={() => handleDeleteUser(appUser.id)}
+                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                      title="حذف المستخدم"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {appUsers.filter(u => u.role === 'sales').length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                                لا يوجد موظفي مبيعات بعد.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
