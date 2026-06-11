@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
-import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc, writeBatch, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, createAuthUserWithoutSignout } from '../firebase';
 import { Modal } from '../components/ui/Modal';
 
@@ -45,20 +45,39 @@ export const Settings: React.FC = () => {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState('sales');
+  const [newUserTeamId, setNewUserTeamId] = useState('');
   const [newUserActive, setNewUserActive] = useState(true);
   const [addUserError, setAddUserError] = useState('');
+  const [managers, setManagers] = useState<{id: string, name: string}[]>([]);
 
   useEffect(() => {
     if (activeTab === 'users' && (user?.role === 'super_admin' || user?.role === 'manager')) {
       fetchAppUsers();
+      fetchManagers();
     }
   }, [activeTab, user]);
+
+  const fetchManagers = async () => {
+    try {
+      const snapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'manager')));
+      const managersData = snapshot.docs.map(d => ({ id: d.id, name: d.data().name }));
+      setManagers(managersData);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchAppUsers = async () => {
     setLoadingUsers(true);
     try {
-      const q = query(collection(db, 'appUsers'));
-      const snapshot = await getDocs(q);
+      let reqQuery = query(collection(db, 'appUsers'));
+      if (user?.role === 'manager') {
+        const isNewManager = user.createdAt && new Date(user.createdAt) > new Date('2026-06-01T00:00:00Z');
+        if (isNewManager && firebaseUser) {
+          reqQuery = query(collection(db, 'appUsers'), where('teamId', '==', firebaseUser.uid));
+        }
+      }
+      const snapshot = await getDocs(reqQuery);
       const fetched: AppUserWithId[] = [];
       snapshot.forEach((d) => fetched.push({ id: d.id, ...d.data() } as AppUserWithId));
       setAppUsers(fetched);
@@ -151,23 +170,34 @@ export const Settings: React.FC = () => {
       
       // Store in users collection using UID
       const usersRef = doc(db, 'users', newUid);
-      await setDoc(usersRef, {
+      
+      const userData: any = {
         email: safeEmail,
         name: newUserName || safeEmail.split('@')[0],
         role: newUserRole,
         createdAt: new Date().toISOString()
-      });
+      };
+      
+      if (newUserRole === 'sales' && newUserTeamId) {
+        userData.teamId = newUserTeamId;
+      }
+      
+      await setDoc(usersRef, userData);
 
       // Still create appUsers (for backward compatibility / active logic if needed)
       // but using UID might be better? Original used email... I'll use UID to be safe, but keep original if needed.
       // Actually, wait, original used safeEmail as id...
       const appUserRef = doc(db, 'appUsers', newUid);
-      const newAppUserData = {
+      const newAppUserData: any = {
         email: safeEmail,
         password: newUserPassword,
         isActive: newUserActive,
         role: newUserRole
       };
+      
+      if (newUserRole === 'sales' && newUserTeamId) {
+        newAppUserData.teamId = newUserTeamId;
+      }
       
       await setDoc(appUserRef, newAppUserData);
       setAppUsers([...appUsers, { id: newUid, ...newAppUserData }]);
@@ -630,6 +660,22 @@ export const Settings: React.FC = () => {
               <option value="sales">مبيعات (Sales)</option>
             </select>
           </div>
+
+          {newUserRole === 'sales' && (
+             <div>
+               <label className="block text-sm font-medium text-slate-700 mb-1">تعيين إلى مدير (اختياري)</label>
+               <select
+                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                 value={newUserTeamId}
+                 onChange={(e) => setNewUserTeamId(e.target.value)}
+               >
+                 <option value="">بدون مدير (إدارة مباشرة)</option>
+                 {managers.map(m => (
+                   <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                 ))}
+               </select>
+             </div>
+          )}
 
           <div className="flex items-center gap-3 mt-4">
             <button

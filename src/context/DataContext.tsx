@@ -99,8 +99,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let q;
-    if (user?.role === 'super_admin' || user?.role === 'manager') {
+    if (user?.role === 'super_admin') {
       q = query(collection(db, 'clients'));
+    } else if (user?.role === 'manager') {
+      const isNewManager = user.createdAt && new Date(user.createdAt) > new Date('2026-06-01T00:00:00Z');
+      if (isNewManager) {
+        q = query(collection(db, 'clients'), where('teamId', '==', firebaseUser.uid));
+      } else {
+        q = query(collection(db, 'clients'));
+      }
     } else {
       q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));
     }
@@ -130,12 +137,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const finalOwnerId = clientData.ownerId || firebaseUser.uid;
       const finalSalesAgent = clientData.salesAgent && clientData.salesAgent !== 'Current User' ? clientData.salesAgent : currentAgent;
       
+      let clientTeamId = user?.teamId || null;
+      if (user?.role === 'manager') {
+        clientTeamId = firebaseUser.uid;
+      }
+      
       const newClient = {
         ...clientData,
         projectName: normalizeProjectName(clientData.projectName),
         salesAgent: finalSalesAgent,
         ownerId: finalOwnerId,
         createdBy: currentAgent,
+        teamId: clientTeamId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };

@@ -31,7 +31,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     if (user?.role === 'super_admin' || user?.role === 'manager') {
       const fetchUsers = async () => {
         try {
-          const snapshot = await getDocs(collection(db, 'users'));
+          let reqQuery = query(collection(db, 'users'));
+          if (user.role === 'manager') {
+             const isNewManager = user.createdAt && new Date(user.createdAt) > new Date('2026-06-01T00:00:00Z');
+             if (isNewManager && firebaseUser) {
+               reqQuery = query(collection(db, 'users'), where('teamId', '==', firebaseUser.uid));
+             }
+          }
+          const snapshot = await getDocs(reqQuery);
           const users = snapshot.docs.map(doc => ({
             id: doc.id,
             name: doc.data().name || doc.data().email?.split('@')[0] || 'Unknown',
@@ -44,7 +51,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       };
       fetchUsers();
     }
-  }, [user]);
+  }, [user, firebaseUser]);
 
   const [formData, setFormData] = useState({
     name: '',

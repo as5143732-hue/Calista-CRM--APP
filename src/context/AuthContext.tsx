@@ -8,6 +8,8 @@ export interface User {
   role: string;
   email: string;
   avatar?: string;
+  createdAt?: string;
+  teamId?: string;
 }
 
 export interface AppUser {
@@ -67,6 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (u) {
         let currentRole = 'sales';
         let currentName = u.displayName || u.email?.split('@')[0].replace(/\b\w/g, l => l.toUpperCase()) || 'User';
+        let currentCreatedAt = new Date().toISOString();
+        let currentTeamId: string | undefined = undefined;
         
         try {
           // Handle 'users' collection
@@ -81,6 +85,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (userDoc.data().name) {
               currentName = userDoc.data().name;
             }
+            if (userDoc.data().createdAt) {
+              currentCreatedAt = userDoc.data().createdAt;
+            }
+            if (userDoc.data().teamId) {
+              currentTeamId = userDoc.data().teamId;
+            }
           } else {
             // New user, create document
             const determinedRole = u.email === 'as5143732@gmail.com' ? 'super_admin' : 'sales';
@@ -89,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: u.email,
               name: currentName,
               role: determinedRole,
-              createdAt: new Date().toISOString()
+              createdAt: currentCreatedAt
             });
           }
 
@@ -144,7 +154,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: currentName,
           email: u.email || '',
           role: currentRole,
-          avatar: u.photoURL || undefined
+          avatar: u.photoURL || undefined,
+          createdAt: currentCreatedAt,
+          teamId: currentTeamId
         });
       } else {
         setUser(null);
