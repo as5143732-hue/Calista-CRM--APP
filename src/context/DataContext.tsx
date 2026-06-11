@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Client, ClientStatus, Activity } from '../types';
 import { useAuth, User } from './AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -71,8 +71,10 @@ const initialClients: Client[] = [
 ];
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [rawClients, setRawClients] = useState<Client[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+  const [usersTeamMap, setUsersTeamMap] = useState<Record<string, string | null>>({});
   const { user, firebaseUser } = useAuth();
   const currentAgent = user?.name || 'System';
 
@@ -81,10 +83,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const uMap: Record<string, string> = {};
+      const tMap: Record<string, string | null> = {};
       snapshot.forEach(d => {
-        uMap[d.id] = d.data().name || d.data().email?.split('@')[0] || 'Unknown';
+        const data = d.data();
+        uMap[d.id] = data.name || data.email?.split('@')[0] || 'Unknown';
+        tMap[d.id] = data.teamId || null;
       });
       setUsersMap(uMap);
+      setUsersTeamMap(tMap);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'users');
     });
@@ -94,36 +100,49 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!firebaseUser) {
-      setClients([]);
+      setRawClients([]);
       return;
     }
 
     let q;
-    if (user?.role === 'super_admin') {
+    if (user?.role === 'super_admin' || user?.role === 'manager') {
       q = query(collection(db, 'clients'));
-    } else if (user?.role === 'manager') {
-      const isNewManager = user.createdAt && new Date(user.createdAt) > new Date('2026-06-01T00:00:00Z');
-      if (isNewManager) {
-        q = query(collection(db, 'clients'), where('teamId', '==', firebaseUser.uid));
-      } else {
-        q = query(collection(db, 'clients'));
-      }
     } else {
       q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));
     }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const loaded: Client[] = [];
+      let loaded: Client[] = [];
       snapshot.forEach(doc => {
         loaded.push({ id: doc.id, ...doc.data() } as Client);
       });
-      setClients(loaded);
+      setRawClients(loaded);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'clients');
     });
 
     return () => unsubscribe();
   }, [firebaseUser, user]);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      setClients([]);
+      return;
+    }
+    
+    let filtered = rawClients;
+    if (user?.role === 'manager') {
+      const isNewManager = user.createdAt && new Date(user.createdAt) > new Date('2026-06-01T00:00:00Z');
+      if (isNewManager) {
+        filtered = rawClients.filter(c => 
+          c.teamId === firebaseUser.uid || 
+          c.ownerId === firebaseUser.uid || 
+          usersTeamMap[c.ownerId || ''] === firebaseUser.uid
+        );
+      }
+    }
+    setClients(filtered);
+  }, [rawClients, usersTeamMap, user, firebaseUser]);
 
   const normalizeProjectName = (name?: string) => {
     if (!name) return '';
