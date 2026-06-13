@@ -71,14 +71,15 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
   return (
     <div 
       onClick={() => navigate(`/clients/${client.id}`)}
-      className="bg-[#6d898d] rounded-3xl p-4 sm:p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-full mb-3"
+      className="bg-[#6d898d] rounded-3xl p-4 sm:p-5 shadow-xl hover:-translate-y-1 transition-transform cursor-pointer relative w-full"
+      style={{ marginTop: '0px', marginBottom: '25px' }}
     >
         {/* Desktop Grid Layout (Hidden on Mobile) */}
         <div className="hidden lg:grid grid-cols-[180px_1fr_1fr_150px] gap-x-4 gap-y-4">
             
             {/* ROW 1 */}
             {/* Name */}
-            <div className="bg-white px-3 py-2 flex items-center gap-2 rounded-full">
+            <div className="bg-white px-3 py-2 flex items-center gap-2 rounded-full" style={{ width: '250px', borderRadius: '40px' }}>
                 <div className="bg-[#6db5a4] rounded-full p-1 shrink-0 flex items-center justify-center h-6 w-6">
                     <User className="w-3.5 h-3.5 text-white" />
                 </div>
@@ -86,12 +87,12 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
             </div>
             
             {/* Project (Row 1) */}
-            <div className="bg-white rounded-full flex items-center justify-center px-4 font-bold text-slate-800 text-[13px] truncate">
+            <div className="bg-white rounded-full flex items-center justify-center px-4 font-bold text-slate-800 text-[13px] truncate" style={{ width: '0px', height: '0px', borderRadius: '40px', padding: 0, overflow: 'hidden' }}>
                 {client.projectName || 'No Project'}
             </div>
             
             {/* Status */}
-            <div className="bg-white rounded-full flex items-center justify-center px-4 font-bold text-slate-800 text-[13px] truncate">
+            <div className="bg-white rounded-full flex items-center justify-center px-4 font-bold text-slate-800 text-[13px] truncate" style={{ width: '200px', borderRadius: '40px', backgroundColor: '#7fb1b1' }}>
                 {client.status}
             </div>
             
@@ -143,29 +144,29 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
 
             {/* ROW 3 */}
             {/* Project (Bottom) */}
-            <div className="bg-white px-3 h-[42px] flex items-center justify-center gap-2 rounded-full w-[170px] shrink-0">
+            <div className="bg-white px-3 h-[42px] flex items-center justify-center gap-2 rounded-full w-[170px] shrink-0" style={{ width: '130px', borderRadius: '40px', backgroundColor: '#7fb1b1' }}>
                 <Building2 className="w-4 h-4 text-slate-700 shrink-0" />
                 <span className="font-bold text-slate-800 text-[13px] truncate">{client.projectName || 'No Project'}</span>
             </div>
             
             {/* Source */}
-            <div className="bg-white rounded-full flex items-center justify-center gap-2 px-4 font-bold text-slate-800 text-[13px] h-[42px]">
+            <div className="bg-white rounded-full flex items-center justify-center gap-2 px-4 font-bold text-slate-800 text-[13px] h-[42px]" style={{ width: '150px', borderRadius: '40px', backgroundColor: '#7fb1b1' }}>
                 <Globe className="w-4 h-4 text-slate-700 shrink-0" />
                 <span className="truncate">{client.leadSource || 'Direct'}</span>
             </div>
             
             {/* Empty / Next Reminder Status */}
             {client.followUpDate ? (
-                <div className="bg-red-500 rounded-full flex items-center justify-center px-4 font-bold text-white text-[13px] h-[42px]">
+                <div className="bg-red-500 rounded-full flex items-center justify-center px-4 font-bold text-white text-[13px] h-[42px]" style={{ borderStyle: 'solid', borderWidth: '0px', borderRadius: '40px', width: '150px', height: '40.9907px', backgroundColor: '#7fb1b1' }}>
                     <CalendarIcon className="w-4 h-4 mr-1.5 shrink-0 text-red-100" />
                     {format(new Date(client.followUpDate), 'PP')}
                 </div>
             ) : (
-                <div className="bg-white rounded-full h-[42px] opacity-20"></div>
+                <div className="bg-white rounded-full h-[42px] opacity-20" style={{ borderStyle: 'solid', borderWidth: '0px', borderRadius: '40px', width: '150px', height: '40.9907px', backgroundColor: '#7fb1b1' }}></div>
             )}
             
             {/* Time */}
-            <div className="bg-white rounded-full flex items-center justify-center gap-2 px-4 font-bold text-slate-800 text-[13px] h-[42px]">
+            <div className="bg-white rounded-full flex items-center justify-center gap-2 px-4 font-bold text-slate-800 text-[13px] h-[42px]" style={{ backgroundColor: '#7fb1b1' }}>
                 <Clock className="w-4 h-4 text-slate-700 shrink-0" />
                 <span className="truncate">
                     {lastActivity ? formatDistanceToNow(new Date(lastActivity.createdAt), { addSuffix: true }) : '---'}
@@ -441,23 +442,25 @@ export const Clients: React.FC = () => {
           {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-3 w-full pb-2 sm:pb-0">
               {/* Date Filter */}
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 hover:border-slate-300 transition-colors shrink-0 h-[42px]">
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 hover:border-slate-300 transition-colors shrink-0 h-[42px]" style={{ width: '200px', fontSize: '0px', lineHeight: '0px', textAlign: 'left', fontWeight: 'normal', paddingLeft: '0px', paddingRight: '0px', paddingBottom: '8px', marginLeft: '18px', borderRadius: '11px', marginRight: '13px' }}>
                 <CalendarIcon className="w-4 h-4 text-slate-400" />
                 <div className="flex items-center">
                   <input 
                       type="date"
                       value={followUpDateFrom}
                       onChange={e => setFollowUpDateFrom(e.target.value)}
-                      className="bg-transparent text-sm focus:outline-none font-semibold text-slate-700 w-[110px]"
+                      className="bg-transparent focus:outline-none text-slate-700"
                       title="From Date"
+                      style={{ fontSize: '26px', lineHeight: '0px', textAlign: 'left', marginLeft: '0px', width: '50px', marginRight: '-2px', marginTop: '0px', marginBottom: '0px', paddingLeft: '0px', paddingRight: '8px' }}
                   />
                   <span className="text-slate-300 font-bold mx-1">-</span>
                   <input 
                       type="date"
                       value={followUpDateTo}
                       onChange={e => setFollowUpDateTo(e.target.value)}
-                      className="bg-transparent text-sm focus:outline-none font-semibold text-slate-700 w-[110px]"
+                      className="bg-transparent focus:outline-none text-slate-700"
                       title="To Date"
+                      style={{ fontSize: '26px', lineHeight: '-1px', textAlign: 'left', fontWeight: 'normal', width: '50px', height: '29.9907px', marginLeft: '48px' }}
                   />
                 </div>
               </div>
@@ -467,6 +470,7 @@ export const Clients: React.FC = () => {
                 <button 
                   onClick={() => setIsStatusOpen(!isStatusOpen)}
                   className="w-full sm:w-40 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-left flex items-center justify-between hover:bg-white hover:border-slate-300 transition-colors font-medium text-slate-800 h-[42px]"
+                  style={{ marginRight: '23px' }}
                 >
                   <span className="truncate">{selectedStatuses.length === 0 ? 'All Statuses' : `${selectedStatuses.length} Statuses`}</span>
                   <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
@@ -507,6 +511,7 @@ export const Clients: React.FC = () => {
                 <button 
                   onClick={() => setIsProjectsOpen(!isProjectsOpen)}
                   className="w-full sm:w-40 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-left flex items-center justify-between hover:bg-white hover:border-slate-300 transition-colors font-medium text-slate-800 h-[42px]"
+                  style={{ marginRight: '20px' }}
                 >
                   <span className="truncate">{selectedProjects.length === 0 ? 'All Projects' : `${selectedProjects.length} Projects`}</span>
                   <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />

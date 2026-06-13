@@ -50,7 +50,7 @@ export const ClientDetails: React.FC = () => {
   const [reminderTime, setReminderTime] = useState('');
   const [reminderNote, setReminderNote] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'log' | 'tasks' | 'requirements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'log' | 'tasks' | 'requirements'>('log');
 
   const client = clients.find(c => c.id === id);
 
