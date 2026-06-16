@@ -94,7 +94,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                 <div className="bg-[#6db5a4] rounded-full p-1 shrink-0 flex items-center justify-center h-6 w-6">
                     <User className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-bold text-[13px] truncate" title={client.name} style={{ color: '#e8ebf0' }}>{client.name}</span>
+                <span className="font-bold truncate" title={client.name} style={{ color: '#e8ebf0', fontSize: '17px', lineHeight: '21.5px' }}>{client.name}</span>
             </div>
             
             {/* Spacer */}
@@ -103,9 +103,9 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
             {/* ROW 2 */}
             {/* Phone & WA */}
             <div className="flex items-center gap-1.5 h-[42px]">
-                 <div className="bg-white px-3 h-full flex items-center gap-2 rounded-full flex-1 min-w-0" style={{ backgroundColor: '#6d898d' }}>
+                 <div className="bg-white px-3 h-full flex items-center gap-2 rounded-full flex-1 min-w-0" style={{ backgroundColor: '#6d898d', paddingRight: '12px' }}>
                     <PhoneCall className="w-4 h-4 text-slate-700 shrink-0" />
-                    <span className="font-bold text-[13px] truncate" style={{ color: '#f0f1f3' }}>{client.phone}</span>
+                    <span className="font-bold truncate" style={{ color: '#f0f1f3', fontSize: '14px', lineHeight: '20.5px', marginLeft: '0px', marginRight: '0px', paddingRight: '0px' }}>{client.phone}</span>
                 </div>
                 <button 
                     onClick={(e) => handleWhatsApp(e, client.phone)}
