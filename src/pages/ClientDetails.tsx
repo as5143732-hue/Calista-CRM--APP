@@ -392,7 +392,7 @@ export const ClientDetails: React.FC = () => {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                              {formatActivityName(activity.type)}
+                              {activity.type === 'follow_up' && activity.newStatus ? activity.newStatus : formatActivityName(activity.type)}
                               {activity.followUpType && <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded uppercase font-bold">{activity.followUpType}</span>}
                             </p>
                           </div>
@@ -411,14 +411,14 @@ export const ClientDetails: React.FC = () => {
                         )}
 
                         {(activity.type === 'note_added' || activity.content) && (
-                          <div className="bg-yellow-50/50 p-3 rounded-lg border border-yellow-100/50 mt-2">
+                          <div className="bg-white p-3 rounded-lg border border-slate-200 mt-2">
                             <p className="text-slate-700 text-sm font-medium leading-relaxed">{activity.content}</p>
                           </div>
                         )}
                         
                         {activity.nextAction && (
-                          <div className="mt-3 bg-indigo-50 text-indigo-800 p-3 rounded-lg text-sm font-medium border border-indigo-100 flex items-start gap-2">
-                            <CalendarPlus className="w-4 h-4 mt-0.5 shrink-0" />
+                          <div className="mt-3 bg-white text-slate-800 p-3 rounded-lg text-sm font-medium border border-slate-200 flex items-start gap-2">
+                            <CalendarPlus className="w-4 h-4 mt-0.5 text-indigo-600 shrink-0" />
                             <div>
                               <span className="font-bold">Next Action:</span> {activity.nextAction} 
                               {activity.nextFollowUpDate && <div className="text-indigo-600 text-xs mt-1">Due: {format(new Date(activity.nextFollowUpDate), 'MMMM d, yyyy')}</div>}
@@ -501,12 +501,12 @@ export const ClientDetails: React.FC = () => {
             </div>
             <div className="space-y-4">
                {activities.filter(a => a.nextAction).map(a => (
-                 <div key={a.id} className="p-4 rounded-xl border border-indigo-100 bg-indigo-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                 <div key={a.id} className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                    <div>
-                     <h3 className="font-bold text-indigo-900">{a.nextAction}</h3>
-                     <p className="text-sm text-indigo-700 mt-1">Due: {a.nextFollowUpDate ? format(new Date(a.nextFollowUpDate), 'MMM d, yyyy') : 'No Date'}</p>
+                     <h3 className="font-bold text-slate-800">{a.nextAction}</h3>
+                     <p className="text-sm text-slate-600 mt-1">Due: {a.nextFollowUpDate ? format(new Date(a.nextFollowUpDate), 'MMM d, yyyy') : 'No Date'}</p>
                    </div>
-                   <div className="text-xs text-indigo-500 bg-indigo-100 px-3 py-1 rounded-full font-bold">
+                   <div className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full font-bold">
                      Created by {usersMap[a.ownerId!] || a.agentName}
                    </div>
                  </div>

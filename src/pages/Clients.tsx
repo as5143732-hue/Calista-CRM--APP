@@ -117,10 +117,12 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
             </div>
 
             {/* Middle Content Box (Spans 3 columns) */}
-            <div className="col-span-3 bg-[#c9d4d4] rounded-[20px] p-4 flex flex-col items-center justify-center text-center w-full min-h-[64px]">
-                <span className="font-bold text-slate-800 text-[15px]">
-                    {lastActivity ? formatActivityName(lastActivity.type) : 'Client Created'}
-                </span>
+            <div className="col-span-3 bg-white border border-slate-200 shadow-sm rounded-[20px] p-4 flex flex-col items-center justify-center text-center w-full min-h-[64px]">
+                {(!lastActivity || lastActivity.type !== 'follow_up') && (
+                    <span className="font-bold text-slate-800 text-[15px]">
+                        {lastActivity ? formatActivityName(lastActivity.type) : 'Client Created'}
+                    </span>
+                )}
                 {lastActivity?.content && (
                     <span className="text-sm font-bold text-slate-700 mt-1.5 line-clamp-2">
                         {lastActivity.content}
@@ -206,8 +208,10 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                 </div>
             )}
 
-            <div className="bg-[#c9d4d4] rounded-2xl p-3 flex flex-col items-center justify-center text-center font-bold text-slate-800 text-sm" style={{ backgroundColor: '#c9d4d4' }}>
-                <span>{lastActivity ? formatActivityName(lastActivity.type) : 'Client Created'}</span>
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-3 flex flex-col items-center justify-center text-center font-bold text-slate-800 text-sm mt-1">
+                {(!lastActivity || lastActivity.type !== 'follow_up') && (
+                    <span>{lastActivity ? formatActivityName(lastActivity.type) : 'Client Created'}</span>
+                )}
                 {lastActivity?.content && (
                     <span className="text-xs font-semibold text-slate-700 mt-1">{lastActivity.content}</span>
                 )}

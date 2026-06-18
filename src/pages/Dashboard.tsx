@@ -108,7 +108,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {todaysLeads.length > 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-6 overflow-hidden">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-slate-800 flex items-center gap-2"><Rocket className="w-5 h-5 text-blue-500" /> Today's New Leads</h2>
             <button onClick={() => navigate('/clients')} className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">View All <ArrowRight className="w-4 h-4" /></button>
@@ -122,11 +122,11 @@ export const Dashboard: React.FC = () => {
       )}
 
       {overdueFollowUps.length > 0 && (
-        <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-4 sm:p-6 overflow-hidden">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-slate-800 flex items-center gap-2"><Clock className="w-5 h-5 text-rose-500" /> Overdue Follow-ups</h2>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory pt-2 scrollbar-thin scrollbar-thumb-rose-200 scrollbar-track-transparent">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory pt-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
             {overdueFollowUps.map(client => (
               <MiniCard key={client.id} client={client} showFollowUp={true} />
             ))}
@@ -135,7 +135,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {hotLeads.length > 0 && (
-        <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-4 sm:p-6 overflow-hidden">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-4 sm:p-6 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-slate-800 flex items-center gap-2"><Flame className="w-5 h-5 text-orange-500" /> Hot Alerts (Quick Action Needed)</h2>
           </div>
