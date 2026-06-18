@@ -31,6 +31,7 @@ export const ClientDetails: React.FC = () => {
   const navigate = useNavigate();
   const { clients, updateClientStatus, addNote, addFollowUp, logCall, updateClient, deleteClient, usersMap } = useData();
   const { firebaseUser, user } = useAuth();
+  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchActivity, setSearchActivity] = useState('');
@@ -105,6 +106,7 @@ export const ClientDetails: React.FC = () => {
     setFuFeedback('');
     setFuNextAction('');
     setFuNextDate('');
+    setIsFollowUpModalOpen(false);
   };
 
   const handleSetReminder = (e: React.FormEvent) => {
@@ -358,9 +360,14 @@ export const ClientDetails: React.FC = () => {
         {activeTab === 'log' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col h-[700px]">
-              <div className="flex items-center justify-between mb-6 shrink-0">
-                <h2 className="font-bold text-slate-800">Activity Timeline</h2>
-                <div className="relative w-64">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 shrink-0 gap-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-bold text-slate-800">Activity Timeline</h2>
+                  <button onClick={() => setIsFollowUpModalOpen(true)} className="flex lg:hidden px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors items-center gap-2 font-medium text-sm ml-4">
+                     <CalendarPlus className="w-4 h-4" /> Action
+                  </button>
+                </div>
+                <div className="relative w-full sm:w-64">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input 
                     type="text" 
@@ -436,7 +443,7 @@ export const ClientDetails: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col overflow-y-auto max-h-[600px]" style={{ width: '359.778px', height: '476.979px' }}>
+            <div className="hidden lg:flex bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex-col overflow-y-auto max-h-[600px] w-full" style={{ width: '359.778px', height: '476.979px' }}>
               <h2 className="font-bold text-slate-800 mb-4">Add Follow Up</h2>
               <form onSubmit={handleAddFollowUp} className="space-y-4 flex flex-col flex-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -552,6 +559,90 @@ export const ClientDetails: React.FC = () => {
         )}
       </div>
 
+      <Modal isOpen={isFollowUpModalOpen} onClose={() => setIsFollowUpModalOpen(false)} title="Add Follow Up">
+        <form onSubmit={handleAddFollowUp} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+              <select
+                value={fuType}
+                onChange={(e) => setFuType(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
+              >
+                <option>Call Attempt</option>
+                <option>Phone Call</option>
+                <option>WhatsApp Message</option>
+                <option>Email Sent</option>
+                <option>Meeting</option>
+                <option>Site Visit</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">New Status</label>
+              <select
+                value={fuStatus}
+                onChange={(e) => setFuStatus(e.target.value as ClientStatus)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
+              >
+                {ALL_STATUSES.map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Feedback / Notes</label>
+            <textarea
+              required
+              value={fuFeedback}
+              onChange={(e) => setFuFeedback(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm resize-none"
+              rows={3}
+              placeholder="What happened during this follow up?"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Next Action (Optional)</label>
+              <input
+                type="text"
+                value={fuNextAction}
+                onChange={(e) => setFuNextAction(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
+                placeholder="e.g. Send proposal"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
+              <input
+                type="date"
+                value={(fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate}
+                onChange={(e) => setFuNextDate(e.target.value)}
+                disabled={fuStatus === 'Not Interested' || fuStatus === 'Low Budget'}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+               type="button"
+               onClick={() => setIsFollowUpModalOpen(false)}
+               className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm transition-colors"
+            >
+               Cancel
+            </button>
+            <button
+               type="submit"
+               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
+            >
+               Save
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Reminder Modal */}
       <Modal isOpen={isReminderModalOpen} onClose={() => setIsReminderModalOpen(false)} title="Set Smart Reminder">
