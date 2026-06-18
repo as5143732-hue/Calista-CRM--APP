@@ -31,8 +31,6 @@ export const ClientDetails: React.FC = () => {
   const navigate = useNavigate();
   const { clients, updateClientStatus, addNote, addFollowUp, logCall, updateClient, deleteClient, usersMap } = useData();
   const { firebaseUser, user } = useAuth();
-  const [newNote, setNewNote] = useState('');
-  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchActivity, setSearchActivity] = useState('');
@@ -104,7 +102,6 @@ export const ClientDetails: React.FC = () => {
       nextAction: fuNextAction,
       nextFollowUpDate: (fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate
     });
-    setIsFollowUpModalOpen(false);
     setFuFeedback('');
     setFuNextAction('');
     setFuNextDate('');
@@ -144,18 +141,7 @@ export const ClientDetails: React.FC = () => {
     setReminderNote('');
   };
 
-  const openFollowUpModal = () => {
-    setFuStatus(client.status);
-    setIsFollowUpModalOpen(true);
-  };
 
-  const handleAddNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newNote.trim()) {
-      addNote(client.id, newNote.trim());
-      setNewNote('');
-    }
-  };
 
   const handleDelete = () => {
     if (window.confirm("هل أنت متأكد من حذف بيانات هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.")) {
@@ -254,10 +240,6 @@ export const ClientDetails: React.FC = () => {
           <a href={getWhatsAppLink(client.phone)} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" title="Send WhatsApp">
              <MessageCircle className="w-4 h-4" />
           </a>
-          <button onClick={openFollowUpModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm ml-2 tracking-wide font-bold">
-             <CalendarPlus className="w-4 h-4" />
-             ACTIONS
-          </button>
           {user?.role !== 'sales' && (
             <button onClick={() => setIsEditModalOpen(true)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-2 font-medium text-sm ml-2">
                <Edit2 className="w-4 h-4" />
@@ -454,22 +436,49 @@ export const ClientDetails: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
-              <h2 className="font-bold text-slate-800 mb-4">Add Note</h2>
-              <form onSubmit={handleAddNote} className="flex flex-col flex-1">
-                <textarea 
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Type a new note..."
-                  className="w-full h-32 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-shadow resize-none text-sm bg-slate-50 focus:bg-white"
-                  required
-                />
-                <button 
-                  type="submit"
-                  className="mt-4 w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-semibold text-sm shadow-sm"
-                >
-                  <Plus className="w-4 h-4" /> Add Note
-                </button>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col overflow-y-auto max-h-[600px]" style={{ width: '359.778px', height: '476.979px' }}>
+              <h2 className="font-bold text-slate-800 mb-4">Add Follow Up</h2>
+              <form onSubmit={handleAddFollowUp} className="space-y-4 flex flex-col flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                    <select value={fuType} onChange={(e) => setFuType(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm">
+                      <option>Call Attempt</option>
+                      <option>Phone Call</option>
+                      <option>WhatsApp Message</option>
+                      <option>Email Sent</option>
+                      <option>Meeting</option>
+                      <option>Site Visit</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">New Status</label>
+                    <select value={fuStatus} onChange={(e) => setFuStatus(e.target.value as ClientStatus)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm">
+                      {ALL_STATUSES.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Feedback / Notes</label>
+                  <textarea required value={fuFeedback} onChange={(e) => setFuFeedback(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm resize-none" rows={3} placeholder="What happened during this follow up?" style={{ height: '102.468px', width: '312.301px' }} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1" style={{ width: '0px', height: '0px', marginBottom: '0px', fontSize: '0px', lineHeight: '0px' }}>Next Action (Optional)</label>
+                    <input type="text" value={fuNextAction} onChange={(e) => setFuNextAction(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm" placeholder="e.g. Send proposal" style={{ height: '0px', width: '0px', borderWidth: '0px', paddingTop: '0px', paddingLeft: '0px', paddingRight: '0px', paddingBottom: '0px' }} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
+                    <input type="date" value={(fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate} onChange={(e) => setFuNextDate(e.target.value)} disabled={fuStatus === 'Not Interested' || fuStatus === 'Low Budget'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100" />
+                  </div>
+                </div>
+                <div className="mt-auto pt-4">
+                  <button type="submit" className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-semibold text-sm shadow-sm">
+                    Save
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -479,7 +488,7 @@ export const ClientDetails: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-bold text-slate-800">Tasks & Reminders</h2>
-              <button onClick={openFollowUpModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm">
+              <button onClick={() => setActiveTab('log')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium text-sm">
                  <CalendarPlus className="w-4 h-4" /> Add Task
               </button>
             </div>
@@ -542,90 +551,7 @@ export const ClientDetails: React.FC = () => {
           </div>
         )}
       </div>
-    <Modal isOpen={isFollowUpModalOpen} onClose={() => setIsFollowUpModalOpen(false)} title="Add Follow Up">
-        <form onSubmit={handleAddFollowUp} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
-              <select
-                value={fuType}
-                onChange={(e) => setFuType(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
-              >
-                <option>Call Attempt</option>
-                <option>Phone Call</option>
-                <option>WhatsApp Message</option>
-                <option>Email Sent</option>
-                <option>Meeting</option>
-                <option>Site Visit</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">New Status</label>
-              <select
-                value={fuStatus}
-                onChange={(e) => setFuStatus(e.target.value as ClientStatus)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
-              >
-                {ALL_STATUSES.map(status => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Feedback / Notes</label>
-            <textarea
-              required
-              value={fuFeedback}
-              onChange={(e) => setFuFeedback(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm resize-none"
-              rows={3}
-              placeholder="What happened during this follow up?"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Next Action (Optional)</label>
-              <input
-                type="text"
-                value={fuNextAction}
-                onChange={(e) => setFuNextAction(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
-                placeholder="e.g. Send proposal"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
-              <input
-                type="date"
-                value={(fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate}
-                onChange={(e) => setFuNextDate(e.target.value)}
-                disabled={fuStatus === 'Not Interested' || fuStatus === 'Low Budget'}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setIsFollowUpModalOpen(false)}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
-            >
-              Save Follow Up
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Reminder Modal */}
       <Modal isOpen={isReminderModalOpen} onClose={() => setIsReminderModalOpen(false)} title="Set Smart Reminder">
