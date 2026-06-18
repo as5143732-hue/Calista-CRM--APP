@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus } from 'lucide-react';
+import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus, LogOut } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc, writeBatch, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, createAuthUserWithoutSignout } from '../firebase';
@@ -11,7 +11,7 @@ interface AppUserWithId extends AppUser {
 }
 
 export const Settings: React.FC = () => {
-  const { user, appUser, firebaseUser, linkEmailPasswordToGoogle } = useAuth();
+  const { user, appUser, firebaseUser, linkEmailPasswordToGoogle, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   
   // Admin User Management State
@@ -333,6 +333,15 @@ export const Settings: React.FC = () => {
           >
             <Shield className="w-4 h-4 shrink-0" /> الأمان
           </button>
+          
+          <div className="pt-4 mt-4 border-t border-slate-200">
+            <button 
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4 shrink-0" /> تسجيل الخروج
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 p-4 md:p-8 overflow-x-auto">

@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
 export const Topbar: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 shrink-0">
@@ -41,7 +43,10 @@ export const Topbar: React.FC = () => {
           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
         </button>
         <div className="h-8 w-px bg-slate-200 hidden md:block mx-1"></div>
-        <div className="flex items-center gap-2 md:gap-3 bg-slate-50 p-1 md:p-1.5 md:pl-3 rounded-full hover:bg-slate-100 transition-colors cursor-pointer">
+        <div 
+          className="flex items-center gap-2 md:gap-3 bg-slate-50 p-1 md:p-1.5 md:pl-3 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+          onClick={() => navigate('/settings')}
+        >
           <div className="hidden md:flex flex-col items-end">
             <span className="text-xs font-bold text-slate-800 leading-tight">{user?.name}</span>
             <span className="text-[10px] text-slate-500 leading-tight">{user?.role}</span>
