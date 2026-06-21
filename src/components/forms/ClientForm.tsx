@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
+import { normalizePhoneNumber } from '../../lib/utils';
 
 interface ClientFormProps {
   initialData?: Client;
@@ -102,11 +103,12 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
       try {
         setIsSubmitting(true);
         // Check for duplicate phone number
+        const normalizedInputPhone = normalizePhoneNumber(formData.phone);
         let duplicateQuery;
         if (user?.role === 'super_admin' || user?.role === 'manager') {
-           duplicateQuery = query(collection(db, 'clients'), where('phone', '==', formData.phone));
+           duplicateQuery = query(collection(db, 'clients'), where('phone', '==', normalizedInputPhone));
         } else {
-           duplicateQuery = query(collection(db, 'clients'), where('phone', '==', formData.phone), where('ownerId', '==', user?.uid || firebaseUser?.uid));
+           duplicateQuery = query(collection(db, 'clients'), where('phone', '==', normalizedInputPhone), where('ownerId', '==', user?.uid || firebaseUser?.uid));
         }
         const snapshot = await getDocs(duplicateQuery);
         
@@ -137,7 +139,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
          result.salesAgent = assignedUser.name;
        }
     }
-    if (formData.phone) result.phone = formData.phone;
+    if (formData.phone) {
+        result.phone = normalizePhoneNumber(formData.phone);
+    }
     if (formData.email) result.email = formData.email;
     if (formData.projectName) result.projectName = formData.projectName;
     if (formData.budgetMin) result.budgetMin = Number(formData.budgetMin);
