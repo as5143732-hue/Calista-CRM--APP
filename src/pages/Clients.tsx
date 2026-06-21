@@ -103,7 +103,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
             {/* ROW 2 */}
             {/* Phone & WA */}
             <div className="flex items-center gap-1.5 h-[42px]">
-                 <div className="bg-white px-3 h-full flex items-center gap-2 rounded-full flex-1 min-w-0" style={{ backgroundColor: '#6d898d', paddingRight: '12px' }}>
+                 <div className="bg-white flex items-center gap-2 rounded-full" style={{ backgroundColor: '#6d898d', width: '200px', height: '41px', paddingLeft: '0px', paddingRight: '11px' }}>
                     <PhoneCall className="w-4 h-4 text-slate-700 shrink-0" />
                     <span className="font-bold truncate" style={{ color: '#f0f1f3', fontSize: '14px', lineHeight: '20.5px', marginLeft: '0px', marginRight: '0px', paddingRight: '0px' }}>{client.phone}</span>
                 </div>
