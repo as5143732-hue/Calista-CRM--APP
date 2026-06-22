@@ -62,6 +62,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     budgetMin: '',
     budgetMax: '',
     followUpDate: '',
+    followUpTime: '',
     meetingDate: '',
     status: 'My Fresh Lead' as ClientStatus,
     leadSource: '',
@@ -80,6 +81,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
         budgetMin: initialData.budgetMin ? initialData.budgetMin.toString() : '',
         budgetMax: initialData.budgetMax ? initialData.budgetMax.toString() : '',
         followUpDate: initialData.followUpDate ? initialData.followUpDate.split('T')[0] : '',
+        followUpTime: initialData.followUpTime || '',
         meetingDate: initialData.meetingDate ? initialData.meetingDate.split('T')[0] : '',
         status: initialData.status,
         leadSource: initialData.leadSource || '',
@@ -149,6 +151,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     if (formData.leadSource) result.leadSource = formData.leadSource;
     if (formData.preferredLocation) result.preferredLocation = formData.preferredLocation;
     if (formData.followUpDate) result.followUpDate = new Date(formData.followUpDate).toISOString();
+    if (formData.followUpTime) result.followUpTime = formData.followUpTime;
     if (formData.meetingDate) result.meetingDate = new Date(formData.meetingDate).toISOString();
 
     const avgBudget = ((Number(formData.budgetMin || 0) + Number(formData.budgetMax || 0)) / 2) || 0;
@@ -279,7 +282,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Follow Up Date</label>
-              <input type="date" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.followUpDate} onChange={e => setFormData({...formData, followUpDate: e.target.value})} />
+              <div className="flex gap-2">
+                <input type="date" className="w-2/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.followUpDate} onChange={e => setFormData({...formData, followUpDate: e.target.value})} />
+                <input type="time" className="w-1/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.followUpTime} onChange={e => setFormData({...formData, followUpTime: e.target.value})} />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Date</label>

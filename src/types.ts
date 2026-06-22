@@ -70,6 +70,7 @@ export interface Client {
   notes: Note[];
   activities?: Activity[];
   followUpDate: string | null;
+  followUpTime?: string | null;
   meetingDate: string | null;
   salesAgent: string;
   status: ClientStatus;

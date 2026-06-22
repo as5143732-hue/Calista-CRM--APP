@@ -4,6 +4,8 @@ import { Search, Bell, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
+import { NotificationMenu } from '../notifications/NotificationMenu';
+
 export const Topbar: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -38,10 +40,7 @@ export const Topbar: React.FC = () => {
       </div>
       
       <div className="flex items-center gap-2 md:gap-4 ml-auto sm:ml-0">
-        <button className="relative p-2.5 bg-slate-100 text-slate-400 rounded-full hover:text-slate-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
-        </button>
+        <NotificationMenu />
         <div className="h-8 w-px bg-slate-200 hidden md:block mx-1"></div>
         <div 
           className="flex items-center gap-2 md:gap-3 bg-slate-50 p-1 md:p-1.5 md:pl-3 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, loginWithGoogle, logoutGoogle, loginWithEmailAndPassword, db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 
 export interface User {
   name: string;
@@ -148,6 +148,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             handleFirestoreError(error, OperationType.GET, `users_or_appUsers_fetch`);
           } catch(e) { console.error(e); }
+        }
+
+        // Login notification for non-admins
+        if (!sessionStorage.getItem(`login_alert_${u.uid}`) && currentRole !== 'super_admin' && currentRole !== 'admin') {
+          sessionStorage.setItem(`login_alert_${u.uid}`, 'true');
+          try {
+            await addDoc(collection(db, 'notifications'), {
+              type: 'login',
+              userId: u.uid,
+              userEmail: u.email,
+              timestamp: new Date().toISOString(),
+              read: false
+            });
+          } catch (e) {
+            console.error("Failed to add login notification", e);
+          }
         }
         
         setUser({

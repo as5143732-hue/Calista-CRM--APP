@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Client, ClientStatus, Activity } from '../types';
 import { useAuth, User } from './AuthContext';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 
 interface DataContextType {
   clients: Client[];
@@ -11,7 +11,7 @@ interface DataContextType {
   deleteClient: (id: string) => void;
   addNote: (clientId: string, noteText: string) => void;
   updateClientStatus: (id: string, newStatus: ClientStatus) => void;
-  addFollowUp: (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string }) => void;
+  addFollowUp: (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string, nextFollowUpTime?: string }) => void;
   logQuickAction: (clientId: string, type: 'call_logged' | 'call_attempt' | 'whatsapp_sent', content?: string) => void;
   refreshData: () => void;
   usersMap: Record<string, string>;
@@ -105,7 +105,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let q;
-    if (user?.role === 'super_admin' || user?.role === 'manager') {
+    if (user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'manager') {
       q = query(collection(db, 'clients'));
     } else {
       q = query(collection(db, 'clients'), where('ownerId', '==', firebaseUser.uid));
@@ -185,6 +185,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         content: `Client Created by ${currentAgent}`,
         createdAt: new Date().toISOString()
       });
+
+      // Send new client notification
+      if (user?.role !== 'super_admin' && user?.role !== 'admin') {
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            type: 'new_client',
+            clientId: newClientRef.id,
+            clientName: clientData.name || 'Unknown',
+            addedBy: currentAgent,
+            targetUserId: finalOwnerId,
+            timestamp: new Date().toISOString(),
+            read: false
+          });
+        } catch (e) {
+          console.error("Failed to add new_client notification", e);
+        }
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'clients');
     }
@@ -317,19 +334,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addFollowUp = async (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string }) => {
+  const addFollowUp = async (clientId: string, data: { followUpType: string, feedbackText: string, status: ClientStatus, nextAction: string, nextFollowUpDate: string, nextFollowUpTime?: string }) => {
     if (!firebaseUser) return;
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
 
+    const isClosedStatus = ['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(data.status);
+    const newFollowUpDate = isClosedStatus ? null : (data.nextFollowUpDate || client.followUpDate);
+    const newFollowUpTime = isClosedStatus ? null : (data.nextFollowUpTime || client.followUpTime || null);
+
     // Optimistic update
-    setClients(prev => prev.map(c => c.id === clientId ? { ...c, status: data.status, followUpDate: data.nextFollowUpDate || client.followUpDate, updatedAt: new Date().toISOString() } : c));
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, status: data.status, followUpDate: newFollowUpDate, followUpTime: newFollowUpTime, updatedAt: new Date().toISOString() } : c));
 
     try {
       const clientRef = doc(db, 'clients', clientId);
       await updateDoc(clientRef, { 
         status: data.status, 
-        followUpDate: data.nextFollowUpDate || client.followUpDate,
+        followUpDate: newFollowUpDate,
+        followUpTime: newFollowUpTime,
         updatedAt: new Date().toISOString() 
       });
 
@@ -342,6 +364,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         followUpType: data.followUpType,
         nextAction: data.nextAction,
         nextFollowUpDate: data.nextFollowUpDate,
+        nextFollowUpTime: data.nextFollowUpTime || null,
         previousStatus: client.status,
         newStatus: data.status,
         agentName: currentAgent,

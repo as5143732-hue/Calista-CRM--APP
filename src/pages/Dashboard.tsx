@@ -34,11 +34,11 @@ export const Dashboard: React.FC = () => {
 
   const overdueFollowUps = useMemo(() => {
     const today = new Date();
-    return clients.filter(c => c.followUpDate && new Date(c.followUpDate) < today && !['Done Deal', 'Canceled', 'Not Interested'].includes(c.status)).sort((a,b) => new Date(a.followUpDate!).getTime() - new Date(b.followUpDate!).getTime()).slice(0, 10);
+    return clients.filter(c => c.followUpDate && new Date(c.followUpDate) < today && !['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(c.status)).sort((a,b) => new Date(a.followUpDate!).getTime() - new Date(b.followUpDate!).getTime()).slice(0, 10);
   }, [clients]);
 
   const hotLeads = useMemo(() => {
-    return clients.filter(c => c.leadScore === 'Hot' && !['Done Deal', 'Canceled', 'Not Interested'].includes(c.status)).slice(0, 10);
+    return clients.filter(c => c.leadScore === 'Hot' && !['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(c.status)).slice(0, 10);
   }, [clients]);
 
   // Dummy chart data

@@ -43,6 +43,7 @@ export const ClientDetails: React.FC = () => {
   const [fuStatus, setFuStatus] = useState<ClientStatus>('My Fresh Lead');
   const [fuNextAction, setFuNextAction] = useState('');
   const [fuNextDate, setFuNextDate] = useState('');
+  const [fuNextTime, setFuNextTime] = useState('');
 
   // Reminder State
   const [reminderDate, setReminderDate] = useState('');
@@ -52,6 +53,7 @@ export const ClientDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'log' | 'tasks' | 'requirements'>('log');
 
   const client = clients.find(c => c.id === id);
+  const isClosedStatus = ['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus);
 
   useEffect(() => {
     if (!id || !firebaseUser) return;
@@ -101,11 +103,13 @@ export const ClientDetails: React.FC = () => {
       feedbackText: fuFeedback,
       status: fuStatus,
       nextAction: fuNextAction,
-      nextFollowUpDate: (fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate
+      nextFollowUpDate: isClosedStatus ? '' : fuNextDate,
+      nextFollowUpTime: isClosedStatus ? '' : fuNextTime
     });
     setFuFeedback('');
     setFuNextAction('');
     setFuNextDate('');
+    setFuNextTime('');
     setIsFollowUpModalOpen(false);
   };
 
@@ -478,7 +482,10 @@ export const ClientDetails: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
-                    <input type="date" value={(fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate} onChange={(e) => setFuNextDate(e.target.value)} disabled={fuStatus === 'Not Interested' || fuStatus === 'Low Budget'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100" />
+                    <div className="flex gap-2">
+                      <input type="date" value={isClosedStatus ? '' : fuNextDate} onChange={(e) => setFuNextDate(e.target.value)} disabled={isClosedStatus} className="w-2/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100" />
+                      <input type="time" value={isClosedStatus ? '' : fuNextTime} onChange={(e) => setFuNextTime(e.target.value)} disabled={isClosedStatus} className="w-1/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100" />
+                    </div>
                   </div>
                 </div>
                 <div className="mt-auto pt-4">
@@ -616,13 +623,22 @@ export const ClientDetails: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
-              <input
-                type="date"
-                value={(fuStatus === 'Not Interested' || fuStatus === 'Low Budget') ? '' : fuNextDate}
-                onChange={(e) => setFuNextDate(e.target.value)}
-                disabled={fuStatus === 'Not Interested' || fuStatus === 'Low Budget'}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={isClosedStatus ? '' : fuNextDate}
+                  onChange={(e) => setFuNextDate(e.target.value)}
+                  disabled={isClosedStatus}
+                  className="w-2/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
+                />
+                <input
+                  type="time"
+                  value={isClosedStatus ? '' : fuNextTime}
+                  onChange={(e) => setFuNextTime(e.target.value)}
+                  disabled={isClosedStatus}
+                  className="w-1/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
+                />
+              </div>
             </div>
           </div>
 

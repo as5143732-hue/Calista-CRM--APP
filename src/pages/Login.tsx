@@ -32,9 +32,13 @@ export const Login: React.FC = () => {
       setError('');
       await login();
       // Wait for useEffect to navigate
-    } catch (err) {
-      setError('فشل تسجيل الدخول باستخدام جوجل');
-      console.error(err);
+    } catch (err: any) {
+      if (err?.code === 'auth/popup-closed-by-user' || err?.message?.includes('auth/popup-closed-by-user')) {
+        setError('');
+      } else {
+        setError('فشل تسجيل الدخول باستخدام جوجل');
+        console.error(err);
+      }
       setIsLoggingIn(false);
     }
   };

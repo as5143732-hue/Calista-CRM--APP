@@ -6,6 +6,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import { Lock } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 
 export const Layout: React.FC = () => {
   const { user, appUser, logout } = useAuth();
@@ -67,6 +68,7 @@ export const Layout: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+      <Toaster position="top-center" />
     </div>
   );
 };

@@ -16,24 +16,24 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     // User roles
     function getUserData() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
+      return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
     }
     function isSuperAdmin() { 
       let data = getUserData();
-      return isSignedIn() && (
+      return request.auth != null && (
         (data != null && data.role in ['admin', 'super_admin']) || 
-        request.auth.token.email == 'as5143732@gmail.com'
+        (request.auth.token != null && request.auth.token.email == 'as5143732@gmail.com')
       ); 
     }
     function isManager() { 
       let data = getUserData();
-      return isSignedIn() && data != null && data.role == 'manager'; 
+      return request.auth != null && data != null && data.role == 'manager'; 
     }
     function isAdmin() { return isSuperAdmin() || isManager(); }
 
     function isSales() {
       let data = getUserData();
-      return isSignedIn() && data != null && data.role == 'sales';
+      return request.auth != null && data != null && data.role == 'sales';
     }
 
     // User Validation
@@ -94,6 +94,33 @@ service cloud.firestore {
         && data.ownerId == request.auth.uid
         && data.text is string && data.text.size() <= 10000
         && data.createdAt is string && data.createdAt.size() <= 100;
+    }
+
+    // Notification Validation
+    function isValidNotification(data) {
+      return data.keys().hasAll(['type', 'timestamp', 'read'])
+        && data.type in ['login', 'new_client', 'follow_up']
+        && data.timestamp is string && data.timestamp.size() <= 100
+        && data.read is bool
+        && (data.get('userId', '') == null || data.get('userId', '') is string)
+        && (data.get('userEmail', '') == null || data.get('userEmail', '') is string)
+        && (data.get('clientId', '') == null || data.get('clientId', '') is string)
+        && (data.get('clientName', '') == null || data.get('clientName', '') is string)
+        && (data.get('addedBy', '') == null || data.get('addedBy', '') is string)
+        && (data.get('targetUserId', '') == null || data.get('targetUserId', '') is string)
+        && (data.get('message', '') == null || data.get('message', '') is string);
+    }
+
+    match /notifications/{notificationId} {
+      allow get, list: if isSignedIn() && (isAdmin() || resource.data.targetUserId == request.auth.uid || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn()
+        && isValidId(notificationId)
+        && isValidNotification(incoming());
+      allow update: if isSignedIn()
+        && isValidId(notificationId)
+        && (isAdmin() || existing().targetUserId == request.auth.uid || existing().userId == request.auth.uid)
+        && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isAdmin();
     }
 
     match /users/{userId} {

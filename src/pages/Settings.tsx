@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus, LogOut } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc, writeBatch, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, createAuthUserWithoutSignout } from '../firebase';
 import { Modal } from '../components/ui/Modal';
@@ -50,6 +51,38 @@ export const Settings: React.FC = () => {
   const [newUserActive, setNewUserActive] = useState(true);
   const [addUserError, setAddUserError] = useState('');
   const [managers, setManagers] = useState<{id: string, name: string}[]>([]);
+
+  const { clients } = useData();
+  const [loggedUsersToday, setLoggedUsersToday] = useState<Record<string, boolean>>({});
+  
+  useEffect(() => {
+    if (activeTab === 'notifications' && user?.role === 'super_admin') {
+      fetchAppUsers(); // Ensure we have the user list
+      fetchTodayLogins();
+    }
+  }, [activeTab, user]);
+
+  const fetchTodayLogins = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const q = query(
+        collection(db, 'notifications'),
+        where('type', '==', 'login'),
+        where('timestamp', '>=', today)
+      );
+      const snapshot = await getDocs(q);
+      const logins: Record<string, boolean> = {};
+      snapshot.forEach(doc => {
+        const notif = doc.data();
+        if (notif.userId) {
+          logins[notif.userId] = true;
+        }
+      });
+      setLoggedUsersToday(logins);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'users' && (user?.role === 'super_admin' || user?.role === 'manager')) {
@@ -191,6 +224,10 @@ export const Settings: React.FC = () => {
       if (newUserRole === 'sales' && newUserTeamId) {
         userData.teamId = newUserTeamId;
       }
+
+      if (user?.role === 'manager') {
+        userData.managerId = firebaseUser?.uid;
+      }
       
       await setDoc(usersRef, userData);
 
@@ -207,6 +244,10 @@ export const Settings: React.FC = () => {
       
       if (newUserRole === 'sales' && newUserTeamId) {
         newAppUserData.teamId = newUserTeamId;
+      }
+
+      if (user?.role === 'manager') {
+        newAppUserData.managerId = firebaseUser?.uid;
       }
       
       await setDoc(appUserRef, newAppUserData);
@@ -321,12 +362,14 @@ export const Settings: React.FC = () => {
             </button>
           )}
 
-          <button 
-            onClick={() => setActiveTab('notifications')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notifications' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
-          >
-            <Bell className="w-4 h-4 shrink-0" /> الإشعارات
-          </button>
+          {user?.role === 'super_admin' && (
+            <button 
+              onClick={() => setActiveTab('notifications')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notifications' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
+            >
+              <Bell className="w-4 h-4 shrink-0" /> الإشعارات
+            </button>
+          )}
           <button 
             onClick={() => setActiveTab('security')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
@@ -648,8 +691,98 @@ export const Settings: React.FC = () => {
             </div>
           )}
 
-          {/* Placeholders for other tabs */}
-          {activeTab === 'notifications' && <div className="text-slate-500">محتوى الإشعارات (قريباً)</div>}
+          {/* Notifications Dashboard */}
+          {activeTab === 'notifications' && user?.role === 'super_admin' && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-indigo-600" />
+                لوحة معلومات الإشعارات
+              </h2>
+
+              <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
+                <table className="w-full text-sm text-right">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 font-medium text-slate-700">اسم المستخدم</th>
+                      <th className="px-4 py-3 font-medium text-slate-700">المتابعات المتأخرة</th>
+                      <th className="px-4 py-3 font-medium text-slate-700">تسجيل الدخول اليوم</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {appUsers.map(appUser => {
+                      // Calculate overdue
+                      const currentTime = new Date();
+                      const todayStr = currentTime.toISOString().split('T')[0];
+                      const currentHourMin = currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                      const userClients = clients.filter(c => c.ownerId === appUser.id);
+                      let overdueCount = 0;
+                      userClients.forEach(c => {
+                        if (c.followUpDate) {
+                          const cDate = c.followUpDate.split('T')[0];
+                          const isClosed = ['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(c.status);
+                          if (!isClosed) {
+                             if (cDate < todayStr) {
+                               overdueCount++;
+                             } else if (cDate === todayStr) {
+                               if (c.followUpTime) {
+                                 if (c.followUpTime <= currentHourMin) {
+                                   overdueCount++;
+                                 }
+                               } else {
+                                 overdueCount++;
+                               }
+                             }
+                          }
+                        }
+                      });
+
+                      const loggedIn = loggedUsersToday[appUser.id];
+
+                      return (
+                        <tr key={appUser.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 text-slate-900 font-medium">
+                            <div className="flex flex-col">
+                              <span>{appUser.name ? appUser.name : (appUser.email ? appUser.email.split('@')[0] : 'غير معروف')}</span>
+                              <span className="text-xs text-slate-500 font-normal mt-0.5">
+                                {appUser.role === 'super_admin' ? 'إدارة عليا' : appUser.role === 'manager' ? 'مدير' : appUser.role === 'sales' ? 'مبيعات' : appUser.role}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {overdueCount > 0 ? (
+                              <span className="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                                {overdueCount}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">0</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {loggedIn ? (
+                              <button className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-emerald-500 text-white text-xs font-medium min-w-[80px]">
+                                سجل دخول
+                              </button>
+                            ) : (
+                              <button className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-slate-200 text-slate-500 text-xs font-medium min-w-[80px]">
+                                لم يسجل
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {appUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-8 text-center text-slate-500">
+                          لا يوجد مستخدمين.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           {activeTab === 'security' && (
             <div className="max-w-md">
               <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
