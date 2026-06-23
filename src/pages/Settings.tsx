@@ -9,6 +9,9 @@ import { Modal } from '../components/ui/Modal';
 interface AppUserWithId extends AppUser {
   id: string;
   role?: string;
+  lastLogin?: any;
+  lastLogout?: any;
+  lastActive?: any;
 }
 
 export const Settings: React.FC = () => {
@@ -105,23 +108,39 @@ export const Settings: React.FC = () => {
     setLoadingUsers(true);
     try {
       let reqQuery = query(collection(db, 'appUsers'));
+      let usersQuery = query(collection(db, 'users'));
+      
       if (user?.role === 'manager') {
-        const isNewManager = user.createdAt && new Date(user.createdAt) > new Date('2026-06-01T00:00:00Z');
-        if (isNewManager && firebaseUser) {
+        if (firebaseUser) {
           reqQuery = query(collection(db, 'appUsers'), where('teamId', '==', firebaseUser.uid));
+          usersQuery = query(collection(db, 'users'), where('teamId', '==', firebaseUser.uid));
         }
       }
       const snapshot = await getDocs(reqQuery);
       
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const rolesMap: Record<string, string> = {};
+      const usersSnapshot = await getDocs(usersQuery);
+      const extraDataMap: Record<string, any> = {};
       usersSnapshot.forEach(d => {
-        rolesMap[d.id] = d.data().role;
+        const data = d.data();
+        extraDataMap[d.id] = {
+          role: data.role,
+          lastLogin: data.lastLogin?.toDate ? data.lastLogin.toDate().toISOString() : null,
+          lastLogout: data.lastLogout?.toDate ? data.lastLogout.toDate().toISOString() : null,
+          lastActive: data.lastActive?.toDate ? data.lastActive.toDate().toISOString() : null,
+        };
       });
 
       const fetched: AppUserWithId[] = [];
       snapshot.forEach((d) => {
-        fetched.push({ id: d.id, ...d.data(), role: rolesMap[d.id] } as AppUserWithId);
+        const extra = extraDataMap[d.id] || {};
+        fetched.push({ 
+          id: d.id, 
+          ...d.data(), 
+          role: extra.role,
+          lastLogin: extra.lastLogin,
+          lastLogout: extra.lastLogout,
+          lastActive: extra.lastActive
+        } as AppUserWithId);
       });
       setAppUsers(fetched);
     } catch (error) {
@@ -336,6 +355,15 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const formatDateTime = (dateStr?: string | null) => {
+    if (!dateStr) return '-';
+    try {
+      return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(dateStr));
+    } catch(e) {
+      return '-';
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
       <div>
@@ -494,6 +522,9 @@ export const Settings: React.FC = () => {
                                   </span>
                                 )}
                               </td>
+                              <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastActive)}</td>
+                              <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogin)}</td>
+                              {user?.role === 'super_admin' && <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogout)}</td>}
                               <td className="px-4 py-4">
                                 <button
                                   onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
@@ -584,6 +615,9 @@ export const Settings: React.FC = () => {
                           <tr>
                             <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
                             <th className="px-4 py-3 font-medium">نوع الحساب</th>
+                            <th className="px-4 py-3 font-medium">آخر ظهور</th>
+                            <th className="px-4 py-3 font-medium">دخول</th>
+                            {user?.role === 'super_admin' && <th className="px-4 py-3 font-medium">خروج</th>}
                             <th className="px-4 py-3 font-medium">حالة التفعيل</th>
                             <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
                           </tr>
@@ -605,6 +639,9 @@ export const Settings: React.FC = () => {
                                   </span>
                                 )}
                               </td>
+                              <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastActive)}</td>
+                              <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogin)}</td>
+                              {user?.role === 'super_admin' && <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogout)}</td>}
                               <td className="px-4 py-4">
                                 <button
                                   onClick={() => handleToggleActive(appUser.id, appUser.isActive)}

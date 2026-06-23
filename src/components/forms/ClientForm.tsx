@@ -6,6 +6,9 @@ import { format } from 'date-fns';
 import { collection, query, getDocs, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
 import { normalizePhoneNumber } from '../../lib/utils';
+import { Calendar, Clock } from 'lucide-react';
+import { CustomDatePickerModal } from '../ui/CustomDatePickerModal';
+import { CustomTimePickerModal } from '../ui/CustomTimePickerModal';
 
 interface ClientFormProps {
   initialData?: Client;
@@ -70,6 +73,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
     propertyType: 'Residential',
     preferredLocation: '',
   });
+
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -283,8 +289,26 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Follow Up Date</label>
               <div className="flex gap-2">
-                <input type="date" className="w-2/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.followUpDate} onChange={e => setFormData({...formData, followUpDate: e.target.value})} />
-                <input type="time" className="w-1/3 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" value={formData.followUpTime} onChange={e => setFormData({...formData, followUpTime: e.target.value})} />
+                <button
+                  type="button"
+                  onClick={() => setIsDatePickerOpen(true)}
+                  className="flex-1 flex justify-between items-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white hover:bg-slate-50 transition-colors text-sm text-left"
+                >
+                  <span className={formData.followUpDate ? 'text-slate-900 truncate' : 'text-slate-400 truncate'}>
+                    {formData.followUpDate ? format(new Date(formData.followUpDate), 'MMM dd, yyyy') : 'Select Date'}
+                  </span>
+                  <Calendar className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTimePickerOpen(true)}
+                  className="flex-1 flex justify-between items-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white hover:bg-slate-50 transition-colors text-sm text-left"
+                >
+                  <span className={formData.followUpTime ? 'text-slate-900 truncate' : 'text-slate-400 truncate'}>
+                    {formData.followUpTime || 'Set Time'}
+                  </span>
+                  <Clock className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
+                </button>
               </div>
             </div>
             <div>
@@ -336,6 +360,20 @@ export const ClientForm: React.FC<ClientFormProps> = ({ initialData, onSubmit, o
           </div>
         </div>
       )}
+
+      <CustomDatePickerModal 
+        isOpen={isDatePickerOpen} 
+        onClose={() => setIsDatePickerOpen(false)} 
+        value={formData.followUpDate} 
+        onChange={val => setFormData({ ...formData, followUpDate: val })} 
+      />
+
+      <CustomTimePickerModal 
+        isOpen={isTimePickerOpen} 
+        onClose={() => setIsTimePickerOpen(false)} 
+        value={formData.followUpTime} 
+        onChange={val => setFormData({ ...formData, followUpTime: val })} 
+      />
     </div>
   );
 };

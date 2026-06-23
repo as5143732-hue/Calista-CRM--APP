@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, loginWithGoogle, logoutGoogle, loginWithEmailAndPassword, db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, getDoc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 export interface User {
   name: string;
@@ -61,6 +61,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       events.forEach(event => window.removeEventListener(event, resetTimer));
     };
   }, []);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    
+    const updateLastActive = async () => {
+      try {
+        await setDoc(doc(db, 'users', firebaseUser.uid), { lastActive: serverTimestamp() }, { merge: true });
+      } catch (e) {
+        // Safe to ignore
+      }
+    };
+
+    updateLastActive();
+    
+    const intervalId = setInterval(() => {
+      if (!isIdle) {
+        updateLastActive();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(intervalId);
+  }, [firebaseUser, isIdle]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -187,11 +209,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async () => {
     await loginWithGoogle();
     localStorage.setItem('login_time', Date.now().toString());
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { lastLogin: serverTimestamp() }, { merge: true });
+      } catch(e) {}
+    }
   };
 
   const loginWithEmail = async (email: string, password: string) => {
     await loginWithEmailAndPassword(email, password);
     localStorage.setItem('login_time', Date.now().toString());
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { lastLogin: serverTimestamp() }, { merge: true });
+      } catch(e) {}
+    }
   };
 
   const linkEmailPasswordToGoogle = async (password: string) => {
@@ -224,6 +256,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { lastLogout: serverTimestamp() }, { merge: true });
+      } catch (e) {}
+    }
     await logoutGoogle();
     localStorage.removeItem('login_time');
     sessionStorage.removeItem('clientsPage');

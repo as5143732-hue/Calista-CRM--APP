@@ -124,31 +124,44 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn() && (
+        isSuperAdmin() ||
+        request.auth.uid == userId ||
+        (isManager() && (resource.data.get('teamId', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid))
+      );
+      
+      allow list: if isSignedIn() && (
+        isSuperAdmin() ||
+        (isManager() && request.query.limit <= 1000) // Firestore limits: we can't reliably filter by query dynamically without matching exact queries, so we allow list but UI hides, or we restrict if possible.
+      );
+      
       allow create: if isSignedIn() 
         && isValidId(userId) 
-        && (request.auth.uid == userId || isSuperAdmin())
+        && (request.auth.uid == userId || isSuperAdmin() || isManager())
         && isValidUser(incoming());
+        
       allow update: if isSignedIn() 
         && isValidId(userId)
-        && (request.auth.uid == userId || isSuperAdmin())
-        && isValidUser(incoming());
-      allow delete: if isSuperAdmin();
+        && (request.auth.uid == userId || isSuperAdmin() || isManager())
+        && isValidUser(incoming())
+        && (isSuperAdmin() || incoming().role == existing().role || (isManager() && existing().role == 'sales'));
+        
+      allow delete: if isSuperAdmin() || (isManager() && existing().role == 'sales' && existing().get('teamId', '') == request.auth.uid);
     }
 
     match /appUsers/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == userId || isAdmin());
-      allow list: if isAdmin();
+      allow get: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == userId || isSuperAdmin() || isManager());
+      allow list: if isSignedIn() && (isSuperAdmin() || isManager());
       allow create: if isSignedIn() 
         && userId.size() <= 128 
-        && (request.auth.uid == userId || isSuperAdmin())
+        && (request.auth.uid == userId || isSuperAdmin() || isManager())
         && isValidAppUser(incoming());
-      allow update: if isSuperAdmin() || (
+      allow update: if isSuperAdmin() || isManager() || (
         isSignedIn() && 
         request.auth.uid == userId && 
         incoming().diff(existing()).affectedKeys().hasOnly(['password', 'isActive', 'email'])
       );
-      allow delete: if isSuperAdmin() || (isSignedIn() && request.auth.token.email == userId);
+      allow delete: if isSuperAdmin() || isManager() || (isSignedIn() && request.auth.token.email == userId);
     }
 
     match /clients/{clientId} {

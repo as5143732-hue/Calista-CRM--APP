@@ -7,6 +7,8 @@ import { StatusBadge } from '../components/ui/Badge';
 import { formatCurrency } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
 import { ClientForm } from '../components/forms/ClientForm';
+import { CustomDatePickerModal } from '../components/ui/CustomDatePickerModal';
+import { CustomTimePickerModal } from '../components/ui/CustomTimePickerModal';
 import { Client, ClientStatus, Activity } from '../types';
 import { format, formatDistanceToNow } from 'date-fns';
 import { db } from '../firebase';
@@ -336,6 +338,10 @@ export const Clients: React.FC = () => {
   const [fuStatus, setFuStatus] = useState<ClientStatus>('My Fresh Lead');
   const [fuNextAction, setFuNextAction] = useState('');
   const [fuNextDate, setFuNextDate] = useState('');
+  const [fuNextTime, setFuNextTime] = useState('');
+  
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
 
   const handleAddFollowUp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,12 +354,14 @@ export const Clients: React.FC = () => {
       feedbackText: fuFeedback,
       status: fuStatus,
       nextAction: fuNextAction,
-      nextFollowUpDate: isClosedStatus ? '' : fuNextDate
+      nextFollowUpDate: isClosedStatus ? '' : fuNextDate,
+      nextFollowUpTime: isClosedStatus ? '' : fuNextTime
     });
     setFollowUpClient(null);
     setFuFeedback('');
     setFuNextAction('');
     setFuNextDate('');
+    setFuNextTime('');
   };
 
   // Extract unique projects for the filter dropdown with normalization
@@ -768,26 +776,33 @@ export const Clients: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Next Action (Optional)</label>
-              <input
-                type="text"
-                value={fuNextAction}
-                onChange={(e) => setFuNextAction(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm"
-                placeholder="e.g. Send proposal"
-              />
-            </div>
+          <div className="border-t border-slate-100 pt-4 mt-2">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Next Follow Up Date</label>
-              <input
-                type="date"
-                value={['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus) ? '' : fuNextDate}
-                onChange={(e) => setFuNextDate(e.target.value)}
-                disabled={['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm disabled:opacity-50 disabled:bg-slate-100"
-              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDatePickerOpen(true)}
+                  disabled={['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus)}
+                  className={`flex-1 flex justify-between items-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm ${['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus) ? 'opacity-50 bg-slate-100 cursor-not-allowed' : 'bg-white hover:bg-slate-50'}`}
+                >
+                  <span className={fuNextDate ? 'text-slate-900 truncate' : 'text-slate-400 truncate'}>
+                    {fuNextDate ? format(new Date(fuNextDate), 'MMM dd, yyyy') : 'Select Date'}
+                  </span>
+                  <CalendarIcon className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsTimePickerOpen(true)}
+                  disabled={['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus)}
+                  className={`flex-1 flex justify-between items-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow text-sm ${['Not Interested', 'Reserved', 'Done Deal', 'Canceled', 'Unreachable'].includes(fuStatus) ? 'opacity-50 bg-slate-100 cursor-not-allowed' : 'bg-white hover:bg-slate-50'}`}
+                >
+                  <span className={fuNextTime ? 'text-slate-900 truncate' : 'text-slate-400 truncate'}>
+                    {fuNextTime || 'Set Time'}
+                  </span>
+                  <Clock className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -808,6 +823,20 @@ export const Clients: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      <CustomDatePickerModal 
+        isOpen={isDatePickerOpen} 
+        onClose={() => setIsDatePickerOpen(false)} 
+        value={fuNextDate} 
+        onChange={setFuNextDate} 
+      />
+
+      <CustomTimePickerModal 
+        isOpen={isTimePickerOpen} 
+        onClose={() => setIsTimePickerOpen(false)} 
+        value={fuNextTime} 
+        onChange={setFuNextTime} 
+      />
     </div>
   );
 };
