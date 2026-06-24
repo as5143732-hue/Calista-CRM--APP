@@ -28,6 +28,16 @@ const FILTER_STATUSES: string[] = [
   'Canceled', 'Low Budget', 'Unreachable'
 ];
 
+const formatTimeStr = (timeStr: string | undefined | null) => {
+  if (!timeStr) return '';
+  const [hour, min] = timeStr.split(':');
+  if (!hour || !min) return '';
+  const d = new Date();
+  d.setHours(parseInt(hour, 10));
+  d.setMinutes(parseInt(min, 10));
+  return format(d, 'h:mm a');
+};
+
 const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, deleteClient: any, usersMap: any, onOpenFollowUp: (c: Client) => void }> = ({ client, logQuickAction, user, deleteClient, usersMap, onOpenFollowUp }) => {
   const navigate = useNavigate();
   const [lastActivity, setLastActivity] = useState<Activity | null>(null);
@@ -155,7 +165,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
                 {client.followUpDate ? (
                     <div className="bg-[#6d898d] rounded-full flex items-center justify-center px-4 font-bold text-[#fdf9f9] text-[13px] h-[42px] flex-1 min-w-[150px]" style={{ backgroundColor: '#6d898d' }}>
                         <CalendarIcon className="w-4 h-4 mr-1.5 shrink-0" />
-                        متابعة: {format(new Date(client.followUpDate), 'PP')}
+                        متابعة: {format(new Date(client.followUpDate), 'MMM d')} {client.followUpTime ? `- ${formatTimeStr(client.followUpTime)}` : ''}
                     </div>
                 ) : (
                     <div className="flex-1 min-w-[150px]" />
@@ -206,7 +216,7 @@ const ClientCard: React.FC<{ client: Client, logQuickAction: any, user: any, del
              {client.followUpDate && (
                 <div className="bg-[#e85e6c] rounded-full flex items-center justify-center px-4 py-2 font-bold text-white text-xs" style={{ backgroundColor: '#e85e6c' }}>
                     <CalendarIcon className="w-3.5 h-3.5 mr-1.5 text-white" />
-                    متابعة: {format(new Date(client.followUpDate), 'PP')}
+                    متابعة: {format(new Date(client.followUpDate), 'MMM d')} {client.followUpTime ? `- ${formatTimeStr(client.followUpTime)}` : ''}
                 </div>
             )}
 

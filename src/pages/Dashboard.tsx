@@ -64,6 +64,16 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
+  const formatTimeStr = (timeStr: string | undefined | null) => {
+    if (!timeStr) return '';
+    const [hour, min] = timeStr.split(':');
+    if (!hour || !min) return '';
+    const d = new Date();
+    d.setHours(parseInt(hour, 10));
+    d.setMinutes(parseInt(min, 10));
+    return d.toLocaleTimeString(undefined, {hour: 'numeric', minute:'2-digit'});
+  };
+
   const MiniCard = ({ client, showFollowUp = false }: any) => (
     <div 
       onClick={() => navigate(`/clients/${client.id}`)}
@@ -82,7 +92,7 @@ export const Dashboard: React.FC = () => {
         </div>
         {showFollowUp && client.followUpDate && (
           <div className="flex items-center gap-1 text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded">
-            <Clock className="w-3 h-3" /> F.U: {new Date(client.followUpDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+            <Clock className="w-3 h-3" /> F.U: {new Date(client.followUpDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})} {client.followUpTime ? `- ${formatTimeStr(client.followUpTime)}` : ''}
           </div>
         )}
       </div>

@@ -364,6 +364,27 @@ export const Settings: React.FC = () => {
     }
   };
 
+  const renderLoginStatus = (appUser: AppUserWithId) => {
+    const loginTime = appUser.lastLogin ? new Date(appUser.lastLogin).getTime() : 0;
+    const logoutTime = appUser.lastLogout ? new Date(appUser.lastLogout).getTime() : 0;
+    
+    // Consider online strictly if they logged in after their last logout
+    const isOnline = loginTime > logoutTime;
+
+    return (
+      <div className="flex items-center gap-2 justify-end" dir="rtl">
+        <span className={isOnline ? "text-emerald-500 text-sm font-bold" : "text-slate-400 text-sm font-bold"}>
+          {isOnline ? "مفتوح" : "مغلق"}
+        </span>
+        <span className="text-xs font-mono text-slate-500" dir="ltr">
+          {isOnline 
+            ? formatDateTime(appUser.lastLogin) 
+            : (logoutTime > 0 ? formatDateTime(appUser.lastLogout) : 'لم يسجل')}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
       <div>
@@ -501,6 +522,8 @@ export const Settings: React.FC = () => {
                           <tr>
                             <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
                             <th className="px-4 py-3 font-medium">نوع الحساب</th>
+                            <th className="px-4 py-3 font-medium">آخر ظهور</th>
+                            <th className="px-4 py-3 font-medium">حالة الدخول</th>
                             <th className="px-4 py-3 font-medium">حالة التفعيل</th>
                             <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
                           </tr>
@@ -523,8 +546,9 @@ export const Settings: React.FC = () => {
                                 )}
                               </td>
                               <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastActive)}</td>
-                              <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogin)}</td>
-                              {user?.role === 'super_admin' && <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogout)}</td>}
+                              <td className="px-4 py-4">
+                                {renderLoginStatus(appUser)}
+                              </td>
                               <td className="px-4 py-4">
                                 <button
                                   onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
@@ -616,8 +640,7 @@ export const Settings: React.FC = () => {
                             <th className="px-4 py-3 font-medium">البريد الإلكتروني</th>
                             <th className="px-4 py-3 font-medium">نوع الحساب</th>
                             <th className="px-4 py-3 font-medium">آخر ظهور</th>
-                            <th className="px-4 py-3 font-medium">دخول</th>
-                            {user?.role === 'super_admin' && <th className="px-4 py-3 font-medium">خروج</th>}
+                            <th className="px-4 py-3 font-medium">حالة الدخول</th>
                             <th className="px-4 py-3 font-medium">حالة التفعيل</th>
                             <th className="px-4 py-3 font-medium">إعداد كلمة المرور</th>
                           </tr>
@@ -640,8 +663,9 @@ export const Settings: React.FC = () => {
                                 )}
                               </td>
                               <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastActive)}</td>
-                              <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogin)}</td>
-                              {user?.role === 'super_admin' && <td className="px-4 py-4 text-xs font-mono text-slate-500" dir="ltr">{formatDateTime(appUser.lastLogout)}</td>}
+                              <td className="px-4 py-4">
+                                {renderLoginStatus(appUser)}
+                              </td>
                               <td className="px-4 py-4">
                                 <button
                                   onClick={() => handleToggleActive(appUser.id, appUser.isActive)}
@@ -795,15 +819,7 @@ export const Settings: React.FC = () => {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            {loggedIn ? (
-                              <button className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-emerald-500 text-white text-xs font-medium min-w-[80px]">
-                                سجل دخول
-                              </button>
-                            ) : (
-                              <button className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-slate-200 text-slate-500 text-xs font-medium min-w-[80px]">
-                                لم يسجل
-                              </button>
-                            )}
+                            {renderLoginStatus(appUser)}
                           </td>
                         </tr>
                       );

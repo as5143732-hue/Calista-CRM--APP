@@ -81,7 +81,7 @@ export const NotificationMenu: React.FC = () => {
       let dbNotifs: AppNotification[] = snapshot.docs.map(doc => ({
         id: doc.id,
         ...(doc.data() as Omit<AppNotification, 'id'>)
-      }));
+      })).filter(n => n.type !== 'login');
 
       // Apply RBAC filtering for manager
       if (user.role === 'manager') {
