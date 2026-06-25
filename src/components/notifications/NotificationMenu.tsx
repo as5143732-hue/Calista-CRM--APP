@@ -202,8 +202,8 @@ export const NotificationMenu: React.FC = () => {
       case 'login': return `قام ${notif.userEmail} بتسجيل الدخول`;
       case 'new_client': return `تم إضافة عميل جديد: ${notif.clientName} بواسطة ${notif.addedBy}`;
       case 'follow_up': 
-          if (notif.isOverdue) return `متابعة متأخرة للعميل: ${notif.clientName}`;
-          return `متابعة اليوم للعميل: ${notif.clientName}`;
+          if (notif.isOverdue) return `متأخر: ${notif.clientName}`;
+          return `متابعة اليوم: ${notif.clientName}`;
       default: return '';
     }
   };
@@ -276,9 +276,11 @@ export const NotificationMenu: React.FC = () => {
                     <p className={`text-sm ${!notif.read ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
                       {getNotificationText(notif)}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {format(new Date(notif.timestamp), 'PP p')}
-                    </p>
+                    {notif.type !== 'follow_up' && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        {format(new Date(notif.timestamp), 'PP p')}
+                      </p>
+                    )}
                   </div>
                   {!notif.read && (
                     <div className="w-2 h-2 rounded-full bg-blue-500 self-center shrink-0"></div>
