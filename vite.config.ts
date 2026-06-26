@@ -12,6 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'auto',
         manifest: {
           name: 'Calista CRM',
           short_name: 'Calista',
@@ -19,6 +20,7 @@ export default defineConfig(({mode}) => {
           theme_color: '#1a1d21',
           background_color: '#000000',
           display: 'standalone',
+          start_url: '/',
           orientation: 'any',
           icons: [
             {
@@ -29,7 +31,8 @@ export default defineConfig(({mode}) => {
             {
               src: '/icon-512.png',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
         },
