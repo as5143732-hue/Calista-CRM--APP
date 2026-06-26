@@ -42,12 +42,11 @@ export const PWAInstallButton: React.FC = () => {
   return (
     <button
       onClick={handleInstallClick}
-      className="fixed bottom-20 left-4 md:bottom-6 md:left-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg flex items-center gap-2 z-50 transition-all group"
+      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow active:scale-95 transition-all shrink-0 cursor-pointer"
       dir="rtl"
     >
-      <Download className="w-5 h-5" />
-      <span className="hidden md:inline font-bold">تثبيت التطبيق</span>
-      <span className="md:hidden w-0 overflow-hidden group-hover:w-auto group-hover:px-2 transition-all font-bold">تثبيت</span>
+      <Download className="w-3.5 h-3.5" />
+      <span>تثبيت التطبيق</span>
     </button>
   );
 };

@@ -7,7 +7,6 @@ import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import { Lock } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
-import { PWAInstallButton } from './PWAInstallButton';
 
 export const Layout: React.FC = () => {
   const { user, appUser, logout } = useAuth();
@@ -70,7 +69,6 @@ export const Layout: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
       <Toaster position="top-center" />
-      <PWAInstallButton />
     </div>
   );
 };
