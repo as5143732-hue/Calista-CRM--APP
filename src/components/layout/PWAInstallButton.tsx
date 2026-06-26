@@ -18,16 +18,33 @@ export const PWAInstallButton: React.FC = () => {
       setDeviceType('desktop');
     }
 
+    // Set initial prompt from global if already captured early in index.html
+    if (window.deferredPrompt) {
+      setDeferredPrompt(window.deferredPrompt);
+      setIsNativeInstallable(true);
+      console.log('PWA: Found early captured deferredPrompt on mount.');
+    }
+
     const handleBeforeInstallPrompt = (e: any) => {
       // Prevent standard browser bar from showing
       e.preventDefault();
       // Stash the event
       setDeferredPrompt(e);
+      window.deferredPrompt = e;
       setIsNativeInstallable(true);
-      console.log('PWA: beforeinstallprompt event fired and captured successfully.');
+      console.log('PWA: beforeinstallprompt event fired and captured successfully in component.');
+    };
+
+    const handlePromptAvailable = () => {
+      if (window.deferredPrompt) {
+        setDeferredPrompt(window.deferredPrompt);
+        setIsNativeInstallable(true);
+        console.log('PWA: React notified of early captured prompt via custom event.');
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('pwa-prompt-available', handlePromptAvailable);
 
     // Also check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -36,17 +53,22 @@ export const PWAInstallButton: React.FC = () => {
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('pwa-prompt-available', handlePromptAvailable);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
+    const promptEvent = window.deferredPrompt || deferredPrompt;
+    if (promptEvent) {
       console.log('PWA: Triggering native install prompt...');
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log(`PWA: User response to install prompt: ${outcome}`);
-      setDeferredPrompt(null);
-      setIsNativeInstallable(false);
+      try {
+        await promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        console.log(`PWA: User response to install prompt: ${outcome}`);
+        // Do not clear the prompt event or hide the button, keeping it fully visible as requested.
+      } catch (err) {
+        console.error('PWA: Error during prompt invocation:', err);
+      }
     } else {
       console.log('PWA: Native prompt unavailable. Showing helpful manual installation guide...');
       setShowInstructions(true);
