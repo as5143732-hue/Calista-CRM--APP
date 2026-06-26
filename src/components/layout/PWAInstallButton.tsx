@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, CheckCircle, X, Smartphone, Monitor, Info, ExternalLink } from 'lucide-react';
+import { Download, CheckCircle, X, Smartphone, Monitor, Copy, ExternalLink, AlertTriangle } from 'lucide-react';
 
 export const PWAInstallButton: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -12,6 +12,7 @@ export const PWAInstallButton: React.FC = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('android');
   const [isIframe, setIsIframe] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // Check if running inside an iframe (like AI Studio preview)
@@ -82,18 +83,41 @@ export const PWAInstallButton: React.FC = () => {
         await promptEvent.prompt();
         const { outcome } = await promptEvent.userChoice;
         console.log(`PWA: User response to install prompt: ${outcome}`);
-        // Do not clear the prompt event or hide the button, keeping it fully visible as requested.
       } catch (err) {
         console.error('PWA: Error during prompt invocation:', err);
+        setShowInstructions(true);
       }
     } else {
-      console.log('PWA: Native prompt unavailable. Showing helpful manual installation guide...');
+      console.log('PWA: Native prompt unavailable. Showing manual installation and direct open options...');
       setShowInstructions(true);
     }
   };
 
-  const handleOpenNewTab = () => {
-    window.open(window.location.href, '_blank');
+  const getCleanUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.origin + '/';
+    }
+    return '';
+  };
+
+  const handleCopyLink = () => {
+    const url = getCleanUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleOpenInChrome = () => {
+    const cleanUrl = getCleanUrl().replace(/^https?:\/\//, '');
+    // Android Chrome intent to force opening in native Chrome browser
+    const chromeIntent = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+    
+    if (deviceType === 'android') {
+      window.location.href = chromeIntent;
+    } else {
+      window.open(getCleanUrl(), '_blank');
+    }
   };
 
   return (
@@ -130,13 +154,9 @@ export const PWAInstallButton: React.FC = () => {
               <div className="flex items-center gap-3">
                 {/* Premium Exact CSS Replica of the custom C logo from the uploaded picture */}
                 <div className="w-12 h-12 rounded-2xl bg-black relative flex items-center justify-center border border-slate-800 shadow-xl overflow-hidden shrink-0">
-                  {/* Glowing blue radial background gradient */}
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.35)_0%,transparent_75%)]" />
-                  {/* Stylized White "C" Logo */}
                   <span className="font-sans font-bold text-white text-2xl z-10 relative select-none">C</span>
-                  {/* Top-Right Dot */}
                   <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-white z-10 shadow" />
-                  {/* Bottom-Left Dot */}
                   <div className="absolute bottom-2.5 left-2.5 w-1.5 h-1.5 rounded-full bg-white z-10 shadow" />
                 </div>
                 <div>
@@ -152,25 +172,31 @@ export const PWAInstallButton: React.FC = () => {
               </button>
             </div>
 
-            {/* Iframe Warning Banner inside AI Studio */}
-            {isIframe && (
-              <div className="m-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-3 text-amber-300">
-                <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold">تنبيه أمان المتصفح (حماية الإطار)</p>
-                  <p className="text-[11px] text-amber-400/90 leading-relaxed">
-                    المتصفح يمنع التثبيت المباشر من داخل نافذة المعاينة الحالية. للحصول على تجربة التثبيت الأصلية (Install App) بنقرة واحدة، يرجى فتح الموقع في نافذة جديدة.
-                  </p>
-                  <button 
-                    onClick={handleOpenNewTab}
-                    className="mt-1.5 text-[11px] bg-amber-500 hover:bg-amber-600 text-black font-bold px-2.5 py-1 rounded-md flex items-center gap-1 transition-all cursor-pointer"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    افتح في نافذة جديدة للتثبيت
-                  </button>
-                </div>
+            {/* Main CTA: Direct Escape / Open in External Chrome Browser */}
+            <div className="p-4 bg-blue-600/10 border-b border-blue-500/20 space-y-3">
+              <div className="flex gap-2.5 items-start text-blue-300">
+                <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-blue-400 animate-bounce" />
+                <p className="text-[11px] md:text-xs leading-relaxed text-blue-200">
+                  إذا كنت تتصفح من داخل تطبيق آخر أو إطار معطل للتحميل المباشر، اضغط أدناه لفتح الرابط في متصفح خارجي حقيقي وتثبيته فوراً:
+                </p>
               </div>
-            )}
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={handleOpenInChrome}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {deviceType === 'android' ? 'فتح في متصفح Chrome الأصلي' : 'فتح في متصفح خارجي'}
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs py-2.5 px-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-slate-700 cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  {copied ? 'تم النسخ!' : 'نسخ الرابط'}
+                </button>
+              </div>
+            </div>
 
             {/* Device tabs */}
             <div className="flex border-b border-slate-800/80 bg-slate-900/20 text-xs">
@@ -227,7 +253,7 @@ export const PWAInstallButton: React.FC = () => {
                   <div className="flex gap-3">
                     <span className="w-5 h-5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0">1</span>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      تأكد من فتح الرابط في متصفح <strong className="text-white">Google Chrome</strong>.
+                      تأكد من فتح الرابط في متصفح <strong className="text-white">Google Chrome</strong> الأصلي.
                     </p>
                   </div>
                   <div className="flex gap-3">
@@ -278,4 +304,3 @@ export const PWAInstallButton: React.FC = () => {
     </>
   );
 };
-
