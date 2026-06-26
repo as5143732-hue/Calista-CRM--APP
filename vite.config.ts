@@ -15,7 +15,7 @@ export default defineConfig(({mode}) => {
         injectRegister: 'auto',
         manifest: {
           name: 'Calista CRM',
-          short_name: 'Calista',
+          short_name: 'Calista CRM',
           description: 'نظام إدارة علاقات العملاء العقاري',
           theme_color: '#1a1d21',
           background_color: '#000000',
