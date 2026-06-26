@@ -14,6 +14,22 @@
         console.log('PWA: Early beforeinstallprompt event captured.');
         window.dispatchEvent(new CustomEvent('pwa-prompt-available'));
       });
+
+      // Guarantee Service Worker registration for PWA installability
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((reg) => {
+              console.log('PWA: SW registered successfully:', reg.scope);
+            })
+            .catch((err) => {
+              console.log('PWA: /sw.js registration failed, trying /dev-sw.js for dev mode...', err);
+              navigator.serviceWorker.register('/dev-sw.js?dev-sw', { type: 'module', scope: '/' })
+                .then((r) => console.log('PWA: Dev SW registered successfully:', r.scope))
+                .catch((e) => console.error('PWA: All SW registrations failed:', e));
+            });
+        });
+      }
     </script>
     <title>Calista CRM</title>
   </head>
