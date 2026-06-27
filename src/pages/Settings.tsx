@@ -70,14 +70,13 @@ export const Settings: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       const q = query(
         collection(db, 'notifications'),
-        where('type', '==', 'login'),
-        where('timestamp', '>=', today)
+        where('type', '==', 'login')
       );
       const snapshot = await getDocs(q);
       const logins: Record<string, boolean> = {};
       snapshot.forEach(doc => {
         const notif = doc.data();
-        if (notif.userId) {
+        if (notif.userId && notif.timestamp >= today) {
           logins[notif.userId] = true;
         }
       });

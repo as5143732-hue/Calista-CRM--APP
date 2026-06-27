@@ -91,8 +91,19 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Extract Firebase composite index URL if present
+  const indexLinkMatch = errorMessage.match(/(https:\/\/console\.firebase\.google\.com[^\s]*)/);
+  if (indexLinkMatch) {
+    const indexUrl = indexLinkMatch[0];
+    console.warn('⚠️ FIRESTORE COMPOSITE INDEX REQUIRED ⚠️');
+    console.warn('Click the link below to create the required index automatically:');
+    console.warn(indexUrl);
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -107,6 +118,9 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  
+  console.error('Firestore Error Details: ', errInfo);
+  
+  // We do not throw here to prevent the app from completely crashing,
+  // which was interrupting the PWA beforeinstallprompt.
 }
