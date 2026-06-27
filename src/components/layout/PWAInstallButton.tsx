@@ -19,6 +19,12 @@ export const PWAInstallButton: React.FC = () => {
   const isIframe = typeof window !== 'undefined' && window !== window.parent;
 
   useEffect(() => {
+    // Immediately check if the prompt is already available (captured early in index.html)
+    if (window.deferredPrompt) {
+      setDeferredPrompt(window.deferredPrompt);
+      console.log('PWA: Found early captured prompt on mount:', window.deferredPrompt);
+    }
+
     // Capture the PWA install prompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -30,6 +36,7 @@ export const PWAInstallButton: React.FC = () => {
     const handlePromptAvailable = () => {
       if (window.deferredPrompt) {
         setDeferredPrompt(window.deferredPrompt);
+        console.log('PWA: React notified of early captured prompt via custom event.');
       }
     };
 
@@ -44,6 +51,9 @@ export const PWAInstallButton: React.FC = () => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('pwa-prompt-available', handlePromptAvailable);
     window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Call it once on mount just in case
+    handlePromptAvailable();
 
     // Check if running in standalone mode (already installed and launched from home screen)
     if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {

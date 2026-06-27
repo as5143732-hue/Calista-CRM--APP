@@ -13,6 +13,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        manifestFilename: 'manifest.json',
         manifest: {
           name: 'Calista CRM',
           short_name: 'Calista CRM',
