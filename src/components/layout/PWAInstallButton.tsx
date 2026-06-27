@@ -76,20 +76,13 @@ export const PWAInstallButton: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    // 1. If inside an iframe (like AI Studio preview), immediately open in a new popup browser tab
-    if (isIframe) {
-      console.log('PWA: Running inside iframe, opening in external window...');
-      window.open(getCleanUrl(), '_blank');
-      return;
-    }
-
-    // 2. If already installed, let the user know
+    // 1. If already installed, let the user know
     if (isInstalled) {
       console.log('PWA: App is already installed.');
       return;
     }
 
-    // 3. Try to trigger the native installation prompt
+    // 2. Try to trigger the native installation prompt
     const promptEvent = window.deferredPrompt || deferredPrompt;
     if (promptEvent) {
       console.log('PWA: Triggering native install prompt...');
@@ -102,11 +95,16 @@ export const PWAInstallButton: React.FC = () => {
         }
       } catch (err) {
         console.error('PWA: Error during prompt invocation:', err);
-        setShowInstructions(true);
       }
     } else {
-      console.log('PWA: Native prompt unavailable. Showing instructions & external browser bypass...');
-      setShowInstructions(true);
+      console.log('PWA: Native prompt unavailable.');
+      // If prompt is unavailable (e.g. inside iframe or iOS), fallback to a simple alert or instructions
+      if (isIframe) {
+        alert("لا يمكن تثبيت التطبيق من داخل المعاينة. يرجى فتح الرابط في نافذة مستقلة أولاً.");
+        window.open(getCleanUrl(), '_blank');
+      } else {
+        setShowInstructions(true);
+      }
     }
   };
 
