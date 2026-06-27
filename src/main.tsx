@@ -5,6 +5,7 @@ import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
 const updateSW = registerSW({
+  immediate: true,
   onNeedRefresh() {
     console.log('PWA Service Worker: New content available, please refresh.');
   },

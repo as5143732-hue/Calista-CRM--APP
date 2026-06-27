@@ -1,8 +1,12 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/__/auth/(.*)",
       "destination": "https://gen-lang-client-0732659555.firebaseapp.com/__/auth/$1"
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "source": "/(.*)",
