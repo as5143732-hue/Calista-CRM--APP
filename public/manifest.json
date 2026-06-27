@@ -1,0 +1,25 @@
+{
+  "name": "Calista CRM",
+  "short_name": "Calista CRM",
+  "description": "نظام إدارة علاقات العملاء العقاري",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#1a1d21",
+  "lang":"ar",
+  "scope": "/",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

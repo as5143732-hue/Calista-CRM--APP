@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, CheckCircle, Loader2, Share, X, AlertCircle, Copy, Laptop, Smartphone, HelpCircle } from 'lucide-react';
+import { Download, CheckCircle, Loader2, Share, X, AlertCircle, Sparkles, Compass } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -11,18 +11,15 @@ export const PWAInstallButton: React.FC = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
-  // Download simulation states
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [downloadStatus, setDownloadStatus] = useState('');
-  
-  // Modals
-  const [showGuideModal, setShowGuideModal] = useState(false);
-  const [copied, setCopied] = useState(false);
+  // Modals and dialogs
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showiOSGuide, setShowiOSGuide] = useState(false);
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false);
   
   const isIframe = typeof window !== 'undefined' && window !== window.parent;
 
   useEffect(() => {
+    // Capture the PWA install prompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -38,8 +35,9 @@ export const PWAInstallButton: React.FC = () => {
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
-      setIsDownloading(false);
-      setShowGuideModal(false);
+      setShowConfirmModal(false);
+      setShowiOSGuide(false);
+      setShowAndroidGuide(false);
       console.log('PWA: App installed successfully.');
     };
 
@@ -47,7 +45,7 @@ export const PWAInstallButton: React.FC = () => {
     window.addEventListener('pwa-prompt-available', handlePromptAvailable);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Check if running in standalone mode
+    // Check if running in standalone mode (already installed and launched from home screen)
     if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
     }
@@ -59,43 +57,34 @@ export const PWAInstallButton: React.FC = () => {
     };
   }, []);
 
-  const handleInstallClick = async () => {
-    if (isInstalled) return;
-
-    setIsDownloading(true);
-    setDownloadProgress(0);
-    setDownloadStatus('جاري الاتصال بالخادم...');
-
-    // Simulate a highly professional download/install progress
-    const interval = setInterval(async () => {
-      setDownloadProgress((prev) => {
-        if (prev < 15) {
-          setDownloadStatus('جاري الاتصال بالخادم وتأمين الاتصال...');
-          return prev + 1;
-        } else if (prev < 45) {
-          setDownloadStatus('جاري تحميل ملفات وحزم التطبيق...');
-          return prev + 2;
-        } else if (prev < 75) {
-          setDownloadStatus('جاري فحص وتثبيت مكونات النظام...');
-          return prev + 3;
-        } else if (prev < 95) {
-          setDownloadStatus('جاري التحقق من التوافق والأمان...');
-          return prev + 2;
-        } else if (prev < 100) {
-          setDownloadStatus('جاري تهيئة التطبيق للتشغيل الفوري...');
-          return prev + 1;
-        } else {
-          clearInterval(interval);
-          handleDownloadComplete();
-          return 100;
-        }
-      });
-    }, 40);
+  // Detect iOS devices
+  const isIOSDevice = () => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   };
 
-  const handleDownloadComplete = async () => {
+  // Main button click handler
+  const handleMainButtonClick = () => {
+    if (isInstalled) return;
+    
+    // 1. Immediately show the install choice modal (تثبيت أو إلغاء)
+    setShowConfirmModal(true);
+  };
+
+  // User clicked "Install" inside our custom choice modal
+  const handleConfirmInstall = async () => {
+    setShowConfirmModal(false);
+
+    // If inside iframe (AI Studio preview window), bypass iframe block by opening in a new tab
+    if (isIframe) {
+      window.open(window.location.href, '_blank');
+      return;
+    }
+
     const promptEvent = window.deferredPrompt || deferredPrompt;
 
+    // A. Native PWA installation is supported and prompt is available (e.g. Chrome on Android)
     if (promptEvent) {
       try {
         await promptEvent.prompt();
@@ -103,48 +92,43 @@ export const PWAInstallButton: React.FC = () => {
         if (outcome === 'accepted') {
           setIsInstalled(true);
         }
+        setDeferredPrompt(null);
+        window.deferredPrompt = null;
       } catch (err) {
-        console.error('PWA: Error during prompt invocation:', err);
-        setShowGuideModal(true);
-      } finally {
-        setIsDownloading(false);
+        console.error('PWA: Error invoking native prompt:', err);
+        fallbackGuide();
       }
     } else {
-      // If native prompt is unavailable (or blocked by browser/iframe)
-      setIsDownloading(false);
-      setShowGuideModal(true);
+      // B. Native prompt is not available (e.g., iOS Safari or browser restrictions)
+      fallbackGuide();
     }
   };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Fallback guides when native prompt is blocked or unsupported (e.g. iOS Safari)
+  const fallbackGuide = () => {
+    if (isIOSDevice()) {
+      setShowiOSGuide(true);
+    } else {
+      setShowAndroidGuide(true);
+    }
   };
 
   return (
     <>
+      {/* 1. Main Blue Install Button */}
       <button
-        onClick={handleInstallClick}
-        disabled={isDownloading}
+        onClick={handleMainButtonClick}
         className={`rounded-full px-4 py-2 text-[12px] md:text-[13px] font-bold flex items-center gap-2 shadow-sm hover:shadow transition-all shrink-0 cursor-pointer ${
           isInstalled 
             ? 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500' 
-            : isDownloading
-            ? 'bg-slate-800 text-blue-400 cursor-wait border border-slate-700'
             : 'bg-blue-600 hover:bg-blue-700 text-white animate-pulse active:scale-95'
         }`}
         dir="rtl"
       >
         {isInstalled ? (
           <>
-            <CheckCircle className="w-4 h-4 text-emerald-300 animate-bounce" />
-            <span>تم تثبيت التطبيق بنجاح</span>
-          </>
-        ) : isDownloading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-            <span>جاري تحميل التطبيق... {downloadProgress}%</span>
+            <CheckCircle className="w-4 h-4 text-emerald-200" />
+            <span>تم التثبيت بنجاح</span>
           </>
         ) : (
           <>
@@ -154,108 +138,163 @@ export const PWAInstallButton: React.FC = () => {
         )}
       </button>
 
-      {/* Downloading/Loading Full Overlay Modal to make it feel extremely real and premium */}
-      {isDownloading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-6 text-center space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            {/* Logo container */}
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent animate-pulse" />
-              <span className="font-sans font-bold text-white text-3xl relative z-10">C</span>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="font-bold text-white text-lg">جاري تحميل وتثبيت Calista CRM</h3>
-              <p className="text-xs text-slate-400">{downloadStatus}</p>
-            </div>
-
-            {/* Custom Modern Progress Bar */}
-            <div className="space-y-2">
-              <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700/50">
-                <div 
-                  className="bg-gradient-to-r from-blue-600 to-indigo-500 h-full rounded-full transition-all duration-75 ease-out shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-                  style={{ width: `${downloadProgress}%` }}
-                />
+      {/* 2. Custom Immediate Confirmation Modal (تثبيت أو إلغاء) */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Logo/Icon Header */}
+            <div className="p-6 text-center border-b border-slate-800 bg-slate-800/40">
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-4 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent animate-pulse" />
+                <span className="font-sans font-bold text-white text-3xl relative z-10">C</span>
               </div>
-              <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 px-1">
-                <span>0%</span>
-                <span className="text-blue-400 font-bold">{downloadProgress}%</span>
-                <span>100%</span>
+              <h3 className="font-bold text-white text-lg">تثبيت Calista CRM</h3>
+              <p className="text-xs text-slate-400 mt-1">إضافة التطبيق إلى الشاشة الرئيسية لهاتفك</p>
+            </div>
+
+            {/* Description */}
+            <div className="p-6 space-y-4 text-center">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                هل ترغب في تثبيت تطبيق <strong>Calista CRM</strong> على واجهة هاتفك للوصول إليه بضغطة زر واحدة وتصفحه بسرعة فائقة؟
+              </p>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 py-2 px-3 rounded-lg border border-emerald-500/20 w-fit mx-auto">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>آمن، سريع، ولا يستهلك مساحة تخزينية</span>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-500 italic">
-              يرجى عدم إغلاق هذه الصفحة حتى يكتمل التنزيل...
+            {/* Action Buttons: تثبيت أو إلغاء */}
+            <div className="p-4 bg-slate-800/40 border-t border-slate-800 flex gap-3">
+              <button
+                onClick={handleConfirmInstall}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-blue-600/20"
+              >
+                تثبيت التطبيق
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs border border-slate-700 transition-all cursor-pointer"
+              >
+                إلغاء
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Guide Modal (only shown if browser blocks native install or after successful simulated download) */}
-      {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" dir="rtl">
+      {/* 3. iOS Safari Native-Looking Bottom Guide (No manual steps - guides exactly how to click) */}
+      {showiOSGuide && (
+        <div className="fixed inset-x-0 bottom-0 z-50 p-4 bg-transparent flex justify-center" dir="rtl">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs -z-10" onClick={() => setShowiOSGuide(false)} />
+          
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative animate-in slide-in-from-bottom duration-300">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Compass className="w-5 h-5 text-blue-400" />
+                <h4 className="font-bold text-white text-sm">خطوة واحدة للتثبيت على آيفون</h4>
+              </div>
+              <button 
+                onClick={() => setShowiOSGuide(false)}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Instruction Body */}
+            <div className="space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                متصفح Safari على أجهزة الآيفون يتطلب تأكيد التثبيت يدوياً. يرجى الضغط كالتالي:
+              </p>
+
+              <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-800 space-y-4 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold border border-blue-500/20 shrink-0">
+                    1
+                  </div>
+                  <div className="text-slate-200">
+                    اضغط على أيقونة <strong className="text-white bg-slate-700 px-1.5 py-0.5 rounded inline-flex items-center gap-1">مشاركة <Share className="w-3 h-3 inline" /></strong> في شريط Safari بالأسفل.
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold border border-blue-500/20 shrink-0">
+                    2
+                  </div>
+                  <div className="text-slate-200">
+                    اسحب القائمة لأسفل واختر <strong className="text-white bg-slate-700 px-1.5 py-0.5 rounded">إضافة للشاشة الرئيسية (Add to Home Screen)</strong>.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowiOSGuide(false)}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                حسناً، سأفعل ذلك الآن
+              </button>
+            </div>
+
+            {/* Bouncing Arrow Pointing downwards to the Safari center action button */}
+            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-1">
+              <div className="w-4 h-4 bg-blue-500 rotate-45 transform origin-center shadow-lg" />
+              <div className="text-[10px] text-blue-400 bg-slate-900 border border-blue-500/30 px-2 py-1 rounded-full font-bold animate-bounce shadow-xl whitespace-nowrap">
+                اضغط بالأسفل هنا
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Android Fallback Guide (If Chrome blocks native prompt or beforeinstallprompt wasn't triggered yet) */}
+      {showAndroidGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" dir="rtl">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-800/40">
               <div className="flex items-center gap-2 text-blue-400">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-bold text-white text-base">اكتمل التحميل بنجاح!</h3>
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-white text-base">طريقة التثبيت السريعة</h3>
               </div>
               <button 
-                onClick={() => setShowGuideModal(false)}
+                onClick={() => setShowAndroidGuide(false)}
                 className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-4">
               <p className="text-xs text-slate-300 leading-relaxed">
-                تم تجهيز وتحميل ملفات التطبيق بنجاح على جهازك. متبقي خطوة أخيرة من المتصفح لتثبيت الأيقونة على هاتفك:
+                حماية المتصفح تمنع التثبيت التلقائي أحياناً. لتثبيت التطبيق فوراً على هاتفك:
               </p>
 
-              {isIframe ? (
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-amber-300">
-                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                    <p className="text-xs leading-relaxed">
-                      أنت حالياً داخل نافذة معاينة (iFrame). يرجى فتح التطبيق في نافذة مستقلة لتتمكن من التثبيت كأيقونة.
-                    </p>
-                  </div>
-                  <button
-                    onClick={copyLink}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-lg shadow-blue-600/20"
-                  >
-                    <Copy className="w-4 h-4" />
-                    {copied ? 'تم نسخ الرابط بنجاح!' : 'نسخ رابط التطبيق لفتحه في Chrome'}
-                  </button>
+              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-800 space-y-3 text-xs">
+                <div className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 border border-blue-500/25">1</span>
+                  <p className="text-slate-300 leading-relaxed">
+                    اضغط على زر <strong className="text-white">الخيارات (⋮)</strong> في أعلى يسار المتصفح.
+                  </p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-800 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 border border-blue-500/25">1</span>
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        اضغط على زر <strong className="text-white">الخيارات (⋮)</strong> في أعلى يسار المتصفح (أو زر <strong className="text-white">المشاركة <Share className="inline w-3 h-3 mx-0.5"/></strong> في الأسفل إذا كنت تستخدم آيفون).
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 border border-blue-500/25">2</span>
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        اختر <strong className="text-white">تثبيت التطبيق (Install App)</strong> أو <strong className="text-white">إضافة إلى الشاشة الرئيسية (Add to Home Screen)</strong>.
-                      </p>
-                    </div>
-                  </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 border border-blue-500/25">2</span>
+                  <p className="text-slate-300 leading-relaxed">
+                    اختر <strong className="text-white">تثبيت التطبيق (Install App)</strong> أو <strong className="text-white">إضافة إلى الشاشة الرئيسية (Add to Home)</strong>.
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
-            <div className="p-4 bg-slate-800/30 border-t border-slate-800/80 flex gap-2">
+            <div className="p-4 bg-slate-800/30 border-t border-slate-800/80">
               <button
-                onClick={() => setShowGuideModal(false)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs border border-slate-700 transition-colors cursor-pointer"
+                onClick={() => setShowAndroidGuide(false)}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer animate-pulse"
               >
-                حسناً، فهمت
+                موافق، فهمت
               </button>
             </div>
           </div>
