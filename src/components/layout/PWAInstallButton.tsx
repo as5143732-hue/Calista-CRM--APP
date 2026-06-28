@@ -14,6 +14,7 @@ export const PWAInstallButton: React.FC = () => {
   // Modals
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showiOSGuide, setShowiOSGuide] = useState(false);
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false);
   
   const isIframe = typeof window !== 'undefined' && window !== window.parent;
 
@@ -38,6 +39,7 @@ export const PWAInstallButton: React.FC = () => {
       setIsInstalled(true);
       setShowConfirmModal(false);
       setShowiOSGuide(false);
+      setShowAndroidGuide(false);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -94,10 +96,7 @@ export const PWAInstallButton: React.FC = () => {
       if (isIOSDevice()) {
         setShowiOSGuide(true);
       } else {
-        // If Android and prompt not available, we can't force the prompt,
-        // but since we want to avoid showing the manual fallback modal that the user disliked,
-        // we'll just alert them briefly or do nothing, relying on browser auto-prompts.
-        alert('الرجاء تثبيت التطبيق من خيارات المتصفح (Add to Home Screen)');
+        setShowAndroidGuide(true);
       }
     }
   };
@@ -201,6 +200,57 @@ export const PWAInstallButton: React.FC = () => {
                 className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 حسناً، سأفعل ذلك الآن
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Android Fallback Guide (If Chrome blocks native prompt or beforeinstallprompt wasn't triggered yet) */}
+      {showAndroidGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-800/40">
+              <div className="flex items-center gap-2 text-blue-400">
+                <Compass className="w-5 h-5 text-blue-400" />
+                <h3 className="font-bold text-white text-base">طريقة التثبيت</h3>
+              </div>
+              <button 
+                onClick={() => setShowAndroidGuide(false)}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                لم يتمكن المتصفح من إظهار نافذة التثبيت التلقائية. لتثبيت التطبيق:
+              </p>
+
+              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-800 space-y-3 text-xs">
+                <div className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 border border-blue-500/25">1</span>
+                  <p className="text-slate-300 leading-relaxed">
+                    اضغط على زر <strong className="text-white">الخيارات (⋮)</strong> في أعلى يسار أو يمين المتصفح.
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 border border-blue-500/25">2</span>
+                  <p className="text-slate-300 leading-relaxed">
+                    اختر <strong className="text-white">تثبيت التطبيق (Install App)</strong> أو <strong className="text-white">إضافة إلى الشاشة الرئيسية (Add to Home Screen)</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-800/30 border-t border-slate-800/80">
+              <button
+                onClick={() => setShowAndroidGuide(false)}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                موافق، فهمت
               </button>
             </div>
           </div>
