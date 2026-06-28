@@ -12,7 +12,6 @@ export const PWAInstallButton: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
   // Modals
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showiOSGuide, setShowiOSGuide] = useState(false);
   const [showAndroidGuide, setShowAndroidGuide] = useState(false);
   
@@ -37,7 +36,6 @@ export const PWAInstallButton: React.FC = () => {
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
-      setShowConfirmModal(false);
       setShowiOSGuide(false);
       setShowAndroidGuide(false);
     };
@@ -65,14 +63,9 @@ export const PWAInstallButton: React.FC = () => {
            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   };
 
-  const handleMainButtonClick = () => {
+  const handleMainButtonClick = async () => {
     if (isInstalled) return;
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmInstall = async () => {
-    setShowConfirmModal(false);
-
+    
     if (isIframe) {
       window.open(window.location.href, '_blank');
       return;
@@ -115,7 +108,7 @@ export const PWAInstallButton: React.FC = () => {
         {isInstalled ? (
           <>
             <CheckCircle className="w-4 h-4 text-emerald-200" />
-            <span>تم التنزيل</span>
+            <span>تم التثبيت</span>
           </>
         ) : (
           <>
@@ -124,42 +117,6 @@ export const PWAInstallButton: React.FC = () => {
           </>
         )}
       </button>
-
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" dir="rtl">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            
-            <div className="p-6 text-center border-b border-slate-800 bg-slate-800/40">
-              <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-4 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-600/20 to-transparent animate-pulse" />
-                <span className="font-sans font-bold text-white text-3xl relative z-10">C</span>
-              </div>
-              <h3 className="font-bold text-white text-lg">تثبيت Calista CRM</h3>
-            </div>
-
-            <div className="p-6 space-y-4 text-center">
-              <p className="text-sm text-slate-300 leading-relaxed">
-                هل ترغب فى تثبيت التطبيق على الهاتف؟
-              </p>
-            </div>
-
-            <div className="p-4 bg-slate-800/40 border-t border-slate-800 flex gap-3">
-              <button
-                onClick={handleConfirmInstall}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-blue-600/20"
-              >
-                تثبيت
-              </button>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs border border-slate-700 transition-all cursor-pointer"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showiOSGuide && (
         <div className="fixed inset-x-0 bottom-0 z-50 p-4 bg-transparent flex justify-center" dir="rtl">
