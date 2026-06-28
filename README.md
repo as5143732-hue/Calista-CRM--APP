@@ -1,3 +1,3 @@
 # Calista CRM
 
-Clean version before PWA rebuild
+Added PWA installation support for Calista CRM.
