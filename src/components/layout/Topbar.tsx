@@ -5,7 +5,6 @@ import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/images/regenerated_image_1778928656019.jpg';
 
 import { NotificationMenu } from '../notifications/NotificationMenu';
-import { PWAInstallButton } from './PWAInstallButton';
 
 export const Topbar: React.FC = () => {
   const { user } = useAuth();
@@ -14,7 +13,6 @@ export const Topbar: React.FC = () => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 shrink-0">
       <div className="flex items-center gap-4 w-full max-w-xs md:max-w-md">
-        <PWAInstallButton />
         <div className="relative flex-1 hidden sm:block">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
