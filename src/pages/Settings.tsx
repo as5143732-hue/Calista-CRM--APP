@@ -43,17 +43,22 @@ export const Settings: React.FC = () => {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    // Check if the prompt was already captured globally
+    if ((window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+    }
+
+    const handleDeferredPromptChanged = () => {
+      setDeferredPrompt((window as any).deferredPrompt);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      (window as any).deferredPrompt = null;
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('deferred-prompt-changed', handleDeferredPromptChanged);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
@@ -61,7 +66,7 @@ export const Settings: React.FC = () => {
     }
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('deferred-prompt-changed', handleDeferredPromptChanged);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
@@ -74,6 +79,7 @@ export const Settings: React.FC = () => {
         setIsInstalled(true);
       }
       setDeferredPrompt(null);
+      (window as any).deferredPrompt = null;
     }
   };
 
