@@ -24,7 +24,6 @@ export const Sidebar: React.FC = () => {
             src={logoUrl} 
             alt="Calista Logo" 
             className="w-10 h-10 object-contain shrink-0"
-            style={{ borderWidth: '0px', borderRadius: '21px' }}
             onError={(e) => {
               // Fallback if logo.png is not yet uploaded
               const target = e.target as HTMLImageElement;
