@@ -38,11 +38,17 @@ export const Settings: React.FC = () => {
   const [profileName, setProfileName] = useState(user?.name || '');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
-  // PWA Install State
+  // Floating PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [inIframe, setInIframe] = useState(false);
 
   useEffect(() => {
+    // Check if in iframe
+    if (window.self !== window.top) {
+      setInIframe(true);
+    }
+
     // Check if the prompt was already captured globally
     if ((window as any).deferredPrompt) {
       setDeferredPrompt((window as any).deferredPrompt);
@@ -431,6 +437,26 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
+      {/* Floating Install Button */}
+      {inIframe ? (
+        <div style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 9999, background: '#f87171', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+          Running inside iframe, install prompt not available
+        </div>
+      ) : (
+        (!isInstalled && deferredPrompt) ? (
+          <button
+            onClick={handleInstallClick}
+            style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 9999, background: '#4f46e5', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+          >
+            تثبيت التطبيق
+          </button>
+        ) : isInstalled ? (
+          <div style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 9999, background: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+            ✅ تم التثبيت
+          </div>
+        ) : null
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900">الإعدادات</h1>
         <p className="text-slate-500 text-sm mt-1">إدارة إعدادات حسابك والتفضيلات.</p>
@@ -468,12 +494,6 @@ export const Settings: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
           >
             <Shield className="w-4 h-4 shrink-0" /> الأمان
-          </button>
-          <button 
-            onClick={() => setActiveTab('app')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'app' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
-          >
-            <Smartphone className="w-4 h-4 shrink-0" /> التطبيق
           </button>
           
           <div className="pt-4 mt-4 border-t border-slate-200">
@@ -529,56 +549,6 @@ export const Settings: React.FC = () => {
                   </button>
                 </div>
               </form>
-            </div>
-          )}
-
-          {activeTab === 'app' && (
-            <div className="max-w-md">
-              <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-indigo-600" />
-                تطبيق Calista CRM
-              </h2>
-              
-              <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 flex items-center justify-center shrink-0">
-                    <img src="/icon-192.png" alt="App Icon" className="w-full h-full object-contain bg-transparent" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg">Calista CRM</h3>
-                    <p className="text-sm text-slate-500">تطبيق سطح المكتب والجوال</p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-200">
-                  <button
-                    onClick={handleInstallClick}
-                    disabled={isInstalled || !deferredPrompt}
-                    className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${
-                      isInstalled 
-                        ? 'bg-emerald-100 text-emerald-700 cursor-default' 
-                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
-                    }`}
-                  >
-                    {isInstalled ? (
-                      <>
-                        <Check className="w-5 h-5" />
-                        تم التثبيت
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-5 h-5" />
-                        تثبيت التطبيق
-                      </>
-                    )}
-                  </button>
-                  {!isInstalled && !deferredPrompt && (
-                    <p className="text-xs text-slate-500 text-center mt-3">
-                      التطبيق مثبت بالفعل أو أن متصفحك لا يدعم التثبيت حالياً.
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
