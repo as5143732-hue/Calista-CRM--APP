@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus, LogOut } from 'lucide-react';
+import { User, Bell, Shield, Key, Save, Users, Check, X, Lock, Trash2, Plus, LogOut, Download, Smartphone } from 'lucide-react';
 import { useAuth, AppUser } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, setDoc, writeBatch, where } from 'firebase/firestore';
@@ -37,6 +37,45 @@ export const Settings: React.FC = () => {
   // Profile Tab State
   const [profileName, setProfileName] = useState(user?.name || '');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+      }
+      setDeferredPrompt(null);
+    }
+  };
 
   useEffect(() => {
     if (user?.name) {
@@ -423,6 +462,12 @@ export const Settings: React.FC = () => {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
           >
             <Shield className="w-4 h-4 shrink-0" /> الأمان
+          </button>
+          <button 
+            onClick={() => setActiveTab('app')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'app' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            <Smartphone className="w-4 h-4 shrink-0" /> التطبيق
           </button>
           
           <div className="pt-4 mt-4 border-t border-slate-200">
@@ -921,6 +966,56 @@ export const Settings: React.FC = () => {
                   لا يمكنك تغيير كلمة المرور لأن حسابك غير مفعل بعد.
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'app' && (
+            <div className="max-w-md">
+              <h2 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-indigo-600" />
+                تطبيق Calista CRM
+              </h2>
+              
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center shrink-0">
+                    <span className="font-sans font-bold text-indigo-600 text-3xl">C</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-lg">Calista CRM</h3>
+                    <p className="text-sm text-slate-500">تطبيق سطح المكتب والجوال</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200">
+                  <button
+                    onClick={handleInstallClick}
+                    disabled={isInstalled || !deferredPrompt}
+                    className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${
+                      isInstalled 
+                        ? 'bg-emerald-100 text-emerald-700 cursor-default' 
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+                    }`}
+                  >
+                    {isInstalled ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        تم التثبيت
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        تثبيت التطبيق
+                      </>
+                    )}
+                  </button>
+                  {!isInstalled && !deferredPrompt && (
+                    <p className="text-xs text-slate-500 text-center mt-3">
+                      التطبيق مثبت بالفعل أو أن متصفحك لا يدعم التثبيت حالياً.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
