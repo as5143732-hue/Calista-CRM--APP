@@ -38,57 +38,6 @@ export const Settings: React.FC = () => {
   const [profileName, setProfileName] = useState(user?.name || '');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
-  // Floating PWA Install State
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [inIframe, setInIframe] = useState(false);
-
-  useEffect(() => {
-    // Check if in iframe
-    if (window.self !== window.top) {
-      setInIframe(true);
-    }
-
-    // Check if the prompt was already captured globally
-    if ((window as any).deferredPrompt) {
-      setDeferredPrompt((window as any).deferredPrompt);
-    }
-
-    const handleDeferredPromptChanged = () => {
-      setDeferredPrompt((window as any).deferredPrompt);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-      (window as any).deferredPrompt = null;
-    };
-
-    window.addEventListener('pwa-installable', handleDeferredPromptChanged);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
-      setIsInstalled(true);
-    }
-
-    return () => {
-      window.removeEventListener('pwa-installable', handleDeferredPromptChanged);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-      }
-      setDeferredPrompt(null);
-      (window as any).deferredPrompt = null;
-    }
-  };
-
   useEffect(() => {
     if (user?.name) {
       setProfileName(user.name);
@@ -437,26 +386,6 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
-      {/* Floating Install Button */}
-      {inIframe ? (
-        <div style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 9999, background: '#f87171', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-          Running inside iframe, install prompt not available
-        </div>
-      ) : (
-        (!isInstalled && deferredPrompt) ? (
-          <button
-            onClick={handleInstallClick}
-            style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 9999, background: '#4f46e5', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-          >
-            تثبيت التطبيق
-          </button>
-        ) : isInstalled ? (
-          <div style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 9999, background: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-            ✅ تم التثبيت
-          </div>
-        ) : null
-      )}
-
       <div>
         <h1 className="text-2xl font-bold text-slate-900">الإعدادات</h1>
         <p className="text-slate-500 text-sm mt-1">إدارة إعدادات حسابك والتفضيلات.</p>

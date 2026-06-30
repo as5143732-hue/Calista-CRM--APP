@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -9,10 +9,66 @@ import { NotificationMenu } from '../notifications/NotificationMenu';
 export const Topbar: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [inIframe, setInIframe] = useState(false);
+
+  useEffect(() => {
+    if (window.self !== window.top) {
+      setInIframe(true);
+    }
+
+    if ((window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+    }
+
+    const handleDeferredPromptChanged = () => {
+      setDeferredPrompt((window as any).deferredPrompt);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      (window as any).deferredPrompt = null;
+    };
+
+    window.addEventListener('pwa-installable', handleDeferredPromptChanged);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('pwa-installable', handleDeferredPromptChanged);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+      }
+      setDeferredPrompt(null);
+      (window as any).deferredPrompt = null;
+    }
+  };
   
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10 shrink-0">
       <div className="flex items-center gap-4 w-full max-w-xs md:max-w-md">
+        {(!isInstalled && deferredPrompt && !inIframe) && (
+          <button
+            onClick={handleInstallClick}
+            className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap shrink-0"
+          >
+            تثبيت التطبيق
+          </button>
+        )}
         <div className="relative flex-1 hidden sm:block">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
