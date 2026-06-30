@@ -551,32 +551,31 @@ export const Settings: React.FC = () => {
                 </div>
 
                 <div className="pt-4 border-t border-slate-200">
-                  {(!isInstalled && !deferredPrompt) ? (
-                    <p className="text-sm text-slate-500 text-center">
-                      التطبيق غير قابل للتثبيت على هذا المتصفح.
+                  <button
+                    onClick={handleInstallClick}
+                    disabled={isInstalled || !deferredPrompt}
+                    className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${
+                      isInstalled 
+                        ? 'bg-emerald-100 text-emerald-700 cursor-default' 
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+                    }`}
+                  >
+                    {isInstalled ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        تم التثبيت
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        تثبيت التطبيق
+                      </>
+                    )}
+                  </button>
+                  {!isInstalled && !deferredPrompt && (
+                    <p className="text-xs text-slate-500 text-center mt-3">
+                      التطبيق مثبت بالفعل أو أن متصفحك لا يدعم التثبيت حالياً.
                     </p>
-                  ) : (
-                    <button
-                      onClick={handleInstallClick}
-                      disabled={isInstalled}
-                      className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${
-                        isInstalled 
-                          ? 'bg-emerald-100 text-emerald-700 cursor-default' 
-                          : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
-                      }`}
-                    >
-                      {isInstalled ? (
-                        <>
-                          <Check className="w-5 h-5" />
-                          تم التثبيت
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-5 h-5" />
-                          تثبيت التطبيق
-                        </>
-                      )}
-                    </button>
                   )}
                 </div>
               </div>
